@@ -6,11 +6,11 @@
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
 #SBATCH --ntasks=2
-#SBATCH --cpus-per-taks=2
+#SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=16G
 #SBATCH --partition=accel --gres=gpu:2
 ## Run for 10 minutes, syntax is d-hh:mm:ss
-#SBATCH --time=14-00:00:00 
+#SBATCH --time=7-00:00:00 
 
 # you may not place bash commands before the last SBATCH directive
 ######################################################
@@ -54,7 +54,7 @@ export HOROVOD_MPI_THREADS_DISABLE=1
 
 # Run the application  - please add hash in front of srun and remove 
 # hash in front of mpirun if using intel-toolchain 
-
+cd go-explore/policy_based
 #time srun MySoftWare-exec
 
 NB_MPI_WORKERS=2

@@ -28,8 +28,9 @@ try:
 except AttributeError:
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-import horovod.tensorflow as hvd
+import horovod.tensorflow.keras as hvd
 import numpy as np
+print(np.__version__)
 from PIL import Image
 import imageio
 import tempfile
