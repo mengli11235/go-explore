@@ -6,7 +6,7 @@
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
 #SBATCH --ntasks=2
-## Amount of memory per cpu (= per task, since we get 1 cpu per task):
+#SBATCH --cpus-per-taks=2
 #SBATCH --mem-per-cpu=16G
 #SBATCH --partition=accel --gres=gpu:2
 ## Run for 10 minutes, syntax is d-hh:mm:ss
