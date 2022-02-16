@@ -30,7 +30,6 @@ except AttributeError:
 
 import horovod.tensorflow.keras as hvd
 import numpy as np
-print(np.__version__)
 from PIL import Image
 import imageio
 import tempfile

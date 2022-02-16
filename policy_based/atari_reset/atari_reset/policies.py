@@ -4,7 +4,7 @@
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.nn import rnn_cell
+from tensorflow.contrib.rnn.python.ops import rnn_cell
 from baselines.common.distributions import make_pdtype
 import logging
 logger = logging.getLogger(__name__)
