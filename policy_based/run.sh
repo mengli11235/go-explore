@@ -23,13 +23,18 @@ set -o nounset # Treat unset variables as errors
 # Loading Software modules
 # Allways be explicit on loading modules and setting run time environment!!!
 module --quiet purge            # Restore loaded modules to the default
-module load TensorFlow/2.2.0-fosscuda-2019b-Python-3.7.4
-
+#module load TensorFlow/2.2.0-fosscuda-2019b-Python-3.7.4
+module load TensorFlow/2.4.1-fosscuda-2020b
 #module load MySoftWare/Versions #nb: Versions is important!
 
 # Type "module avail MySoftware" to find available modules and versions
 # It is also recommended to to list loaded modules, for easier debugging:
+source /fp/homes01/u01/ec-limeng/tensor_env/bin/activate
 module list
+
+# Export settings expected by Horovod and mpirun
+export OMPI_MCA_pml="ob1"
+export HOROVOD_MPI_THREADS_DISABLE=1
 
 #######################################################
 ## Prepare jobs, moving input files and making sure 
