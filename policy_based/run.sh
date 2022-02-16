@@ -29,8 +29,8 @@ module load TensorFlow/2.4.1-fosscuda-2020b
 
 # Type "module avail MySoftware" to find available modules and versions
 # It is also recommended to to list loaded modules, for easier debugging:
-source /fp/homes01/u01/ec-limeng/tensor_env/bin/activate
 module list
+source /fp/homes01/u01/ec-limeng/tensor_env/bin/activate
 
 # Export settings expected by Horovod and mpirun
 export OMPI_MCA_pml="ob1"
