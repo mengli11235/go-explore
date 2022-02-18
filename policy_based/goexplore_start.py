@@ -22,13 +22,13 @@ import pickle
 from typing import Optional, Any
 import goexplore_py.globals as global_const
 import tensorflow as tf
-
+tf.compat.v1.disable_eager_execution()
 try:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 except AttributeError:
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-import horovod.tensorflow.keras as hvd
+import horovod.tensorflow as hvd
 import numpy as np
 from PIL import Image
 import imageio

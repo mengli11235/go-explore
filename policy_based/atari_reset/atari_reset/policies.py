@@ -4,7 +4,7 @@
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.rnn.python.ops import rnn_cell
+from tensorflow.python.ops import rnn_cell
 from baselines.common.distributions import make_pdtype
 import logging
 logger = logging.getLogger(__name__)
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 def to2d(x):
     size = 1
-    for shapel in x.get_shape()[1:]:
-        size *= shapel.value
+    for shapel in x.shape.as_list()[1:]:
+        size *= shapel
     return tf.reshape(x, (-1, size))
 
 
@@ -49,18 +49,18 @@ def ortho_init(scale=1.0):
 
 
 def fc(x, scope, nout, init_scale=1.0, init_bias=0.0):
-    with tf.variable_scope(scope):  # pylint: disable=E1129
-        nin = x.get_shape()[1].value
-        w = tf.get_variable("w", [nin, nout], initializer=normc_init(init_scale))
-        b = tf.get_variable("b", [nout], initializer=tf.constant_initializer(init_bias))
+    with tf.compat.v1.variable_scope(scope):  # pylint: disable=E1129
+        nin = x.shape.as_list()[1]
+        w = tf.compat.v1.get_variable("w", [nin, nout], initializer=normc_init(init_scale))
+        b = tf.compat.v1.get_variable("b", [nout], initializer=tf.constant_initializer(init_bias))
         return tf.matmul(x, w) + b
 
 
 def conv(x, scope, noutchannels, filtsize, stride, pad='VALID', init_scale=1.0):
-    with tf.variable_scope(scope):
-        nin = x.get_shape()[3].value
-        w = tf.get_variable("w", [filtsize, filtsize, nin, noutchannels], initializer=ortho_init(init_scale))
-        b = tf.get_variable("b", [noutchannels], initializer=tf.constant_initializer(0.0))
+    with tf.compat.v1.variable_scope(scope):
+        nin = x.shape.as_list()[3]
+        w = tf.compat.v1.get_variable("w", [filtsize, filtsize, nin, noutchannels], initializer=ortho_init(init_scale))
+        b = tf.compat.v1.get_variable("b", [noutchannels], initializer=tf.constant_initializer(0.0))
         z = tf.nn.conv2d(x, w, strides=[1, stride, stride, 1], padding=pad)+b
         return z
 
@@ -71,10 +71,10 @@ class GRUCell(rnn_cell.RNNCell):
         rnn_cell.RNNCell.__init__(self)
         self._num_units = num_units
         self.rec_gate_init = rec_gate_init
-        self.w1 = tf.get_variable(name + "w1", [nin+num_units, 2*num_units], initializer=normc_init(1.))
-        self.b1 = tf.get_variable(name + "b1", [2*num_units], initializer=tf.constant_initializer(rec_gate_init))
-        self.w2 = tf.get_variable(name + "w2", [nin+num_units, num_units], initializer=normc_init(1.))
-        self.b2 = tf.get_variable(name + "b2", [num_units], initializer=tf.constant_initializer(0.))
+        self.w1 = tf.compat.v1.get_variable(name + "w1", [nin+num_units, 2*num_units], initializer=normc_init(1.))
+        self.b1 = tf.compat.v1.get_variable(name + "b1", [2*num_units], initializer=tf.constant_initializer(rec_gate_init))
+        self.w2 = tf.compat.v1.get_variable(name + "w2", [nin+num_units, num_units], initializer=normc_init(1.))
+        self.b2 = tf.compat.v1.get_variable(name + "b2", [num_units], initializer=tf.constant_initializer(0.))
 
     @property
     def state_size(self):
@@ -92,10 +92,10 @@ class GRUCell(rnn_cell.RNNCell):
             new = tf.expand_dims(new, len(new.get_shape().as_list()))
         h = state * (1.0 - new)
         hx = tf.concat([h, x], axis=1)
-        mr = tf.sigmoid(tf.matmul(hx, self.w1) + self.b1)
+        mr = tf.math.sigmoid(tf.matmul(hx, self.w1) + self.b1)
         m, r = tf.split(mr, 2, axis=1)
         rh_x = tf.concat([r * h, x], axis=1)
-        htil = tf.tanh(tf.matmul(rh_x, self.w2) + self.b2)
+        htil = tf.math.tanh(tf.matmul(rh_x, self.w2) + self.b2)
         h = m * h + (1.0 - m) * htil
         return h, h
 
@@ -106,8 +106,8 @@ class CnnPolicy(object):
         nh, nw, nc = ob_space.shape
         ob_shape = (nbatch, nh, nw, nc)
         nact = ac_space.n
-        x = tf.placeholder(tf.uint8, ob_shape)
-        with tf.variable_scope("model", reuse=reuse):
+        x = tf.compat.v1.placeholder(tf.uint8, ob_shape)
+        with tf.compat.v1.variable_scope("model", reuse=reuse):
             h = tf.nn.relu(conv(tf.cast(x, tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
             h2 = tf.nn.relu(conv(h, 'c2', noutchannels=128, filtsize=4, stride=2))
             h3 = tf.nn.relu(conv(h2, 'c3', noutchannels=128, filtsize=3, stride=1))
@@ -146,23 +146,23 @@ class GRUPolicy(object):
         nact = ac_space.n
 
         # use variables instead of placeholder to keep data on GPU if we're training
-        x = tf.placeholder(tf.uint8, ob_shape)  # obs
-        mask = tf.placeholder(tf.float32, [nbatch])  # mask (done t-1)
-        states = tf.placeholder(tf.float32, [nenv, memsize])  # states
-        e = tf.placeholder(tf.uint8, [nbatch])
+        x = tf.compat.v1.placeholder(tf.uint8, ob_shape)  # obs
+        mask = tf.compat.v1.placeholder(tf.float32, [nbatch])  # mask (done t-1)
+        states = tf.compat.v1.placeholder(tf.float32, [nenv, memsize])  # states
+        e = tf.compat.v1.placeholder(tf.uint8, [nbatch])
 
-        with tf.variable_scope("model", reuse=reuse):
+        with tf.compat.v1.variable_scope("model", reuse=reuse):
             h = tf.nn.relu(conv(tf.cast(x, tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
             h2 = tf.nn.relu(conv(h, 'c2', noutchannels=128, filtsize=4, stride=2))
             h3 = tf.nn.relu(conv(h2, 'c3', noutchannels=128, filtsize=3, stride=1))
             h3 = to2d(h3)
-            h4 = tf.contrib.layers.layer_norm(fc(h3, 'fc1', nout=memsize), center=False, scale=False,
-                                              activation_fn=tf.nn.relu)
+            layer_norma = tf.keras.layers.LayerNormalization(center=False,scale=False)
+            h4 = tf.nn.relu(layer_norma(fc(h3, 'fc1', nout=memsize)))
             h5 = tf.reshape(h4, [nenv, nsteps, memsize])
 
             m = tf.reshape(mask, [nenv, nsteps, 1])
             cell = GRUCell(memsize, 'gru1', nin=memsize)
-            h6, snew = tf.nn.dynamic_rnn(cell, (h5, m), dtype=tf.float32, time_major=False, initial_state=states,
+            h6, snew = tf.compat.v1.nn.dynamic_rnn(cell, (h5, m), dtype=tf.float32, time_major=False, initial_state=states,
                                          swap_memory=True)
 
             h7 = tf.concat([tf.reshape(h6, [nbatch, memsize]), h4], axis=1)

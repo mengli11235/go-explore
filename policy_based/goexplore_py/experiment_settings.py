@@ -148,7 +148,7 @@ def get_frame_wrapper(frame_resize):
 def set_global_seeds(i):
     try:
         import tensorflow as local_tf
-        local_tf.set_random_seed(i)
+        local_tf.random.set_seed(i)
     except ImportError:
         # noinspection PyUnusedLocal
         local_tf = None
@@ -161,12 +161,12 @@ def hrv_and_tf_init(nb_cpu, nb_envs, seed_offset):
     master_seed = hvd.rank() * (nb_envs + 1) + seed_offset
     logger.info(f'initialized worker {hvd.rank()} with seed {master_seed}')
     set_global_seeds(master_seed)
-    config = tf.ConfigProto(allow_soft_placement=True,
+    config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=nb_cpu,
                             inter_op_parallelism_threads=nb_cpu)
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    session = tf.Session(config=config)
+    session = tf.compat.v1.Session(config=config)
     return session, master_seed
 
 

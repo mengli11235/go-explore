@@ -17,7 +17,7 @@ class GoalConditionedModelFlexEnt(ppo.Model):
 
     def init(self, policy, ob_space, ac_space, nenv, nsteps, ent_coef, vf_coef, l2_coef,
              cliprange, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
-        self.sess = tf.get_default_session()
+        self.sess = tf.compat.v1.get_default_session()
         self.init_models(policy, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, cliprange, disable_hvd)
         self.loss = self.pg_loss - self.entropy * ent_coef + self.vf_loss * vf_coef + l2_coef * self.l2_loss
@@ -82,7 +82,7 @@ class GoalConFlexEntSilModel(GoalConditionedModelFlexEnt):
     def init(self, policy, ob_space, ac_space, nenv, nsteps, ent_coef, vf_coef, l2_coef,
              cliprange, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, sil_coef=0.0,
              sil_vf_coef=0.0, sil_ent_coef=0.0, disable_hvd=False):
-        self.sess = tf.get_default_session()
+        self.sess = tf.compat.v1.get_default_session()
         self.init_models(policy, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, cliprange, disable_hvd)
         self.init_sil_loss(nenv, nsteps, sil_vf_coef, sil_ent_coef)
@@ -116,26 +116,26 @@ class GoalConFlexEntSilModel(GoalConditionedModelFlexEnt):
 
     def init_sil_loss(self, nenv, nsteps, sil_vf_coef, sil_ent_coef):
         self.SIL_A = self.train_model.pdtype.sample_placeholder([nenv*nsteps], name='sil_action')
-        self.SIL_VALID = tf.placeholder(tf.float32, [nenv*nsteps], name='sil_valid')
-        self.SIL_R = tf.placeholder(tf.float32, [nenv*nsteps], name='sil_return')
+        self.SIL_VALID = tf.compat.v1.placeholder(tf.float32, [nenv*nsteps], name='sil_valid')
+        self.SIL_R = tf.compat.v1.placeholder(tf.float32, [nenv*nsteps], name='sil_return')
 
         neglogp_sil_ac = self.train_model.pd.neglogp(self.SIL_A)
 
-        self.sil_pg_loss = tf.reduce_mean(neglogp_sil_ac * tf.nn.relu(self.SIL_R - self.OLDVPRED) * self.SIL_VALID)
-        self.sil_vf_loss = .5 * tf.reduce_mean(tf.square(tf.nn.relu(self.SIL_R - self.vpred)) * self.SIL_VALID)
-        self.sil_entropy = tf.reduce_mean(self.SIL_VALID * self.train_model.pd.entropy())
+        self.sil_pg_loss = tf.math.reduce_mean(neglogp_sil_ac * tf.nn.relu(self.SIL_R - self.OLDVPRED) * self.SIL_VALID)
+        self.sil_vf_loss = .5 * tf.math.reduce_mean(tf.math.square(tf.nn.relu(self.SIL_R - self.vpred)) * self.SIL_VALID)
+        self.sil_entropy = tf.math.reduce_mean(self.SIL_VALID * self.train_model.pd.entropy())
         self.sil_loss = self.sil_pg_loss + sil_vf_coef * self.sil_vf_loss + sil_ent_coef * self.sil_entropy
 
-        self.sil_valid_min = tf.reduce_min(self.SIL_VALID)
-        self.sil_valid_max = tf.reduce_max(self.SIL_VALID)
-        self.sil_valid_mean = tf.reduce_mean(self.SIL_VALID)
+        self.sil_valid_min = tf.math.reduce_min(self.SIL_VALID)
+        self.sil_valid_max = tf.math.reduce_max(self.SIL_VALID)
+        self.sil_valid_mean = tf.math.reduce_mean(self.SIL_VALID)
 
-        self.neglop_sil_min = tf.reduce_min(neglogp_sil_ac)
-        self.neglop_sil_max = tf.reduce_max(neglogp_sil_ac)
-        self.neglop_sil_mean = tf.reduce_mean(neglogp_sil_ac)
+        self.neglop_sil_min = tf.math.reduce_min(neglogp_sil_ac)
+        self.neglop_sil_max = tf.math.reduce_max(neglogp_sil_ac)
+        self.neglop_sil_mean = tf.math.reduce_mean(neglogp_sil_ac)
 
-        self.mean_val_pred = tf.reduce_mean(self.OLDVPRED)
-        self.mean_sil_r = tf.reduce_mean(self.SIL_R)
+        self.mean_val_pred = tf.math.reduce_mean(self.OLDVPRED)
+        self.mean_sil_r = tf.math.reduce_mean(self.SIL_R)
 
     def train_from_runner(self, lr: float, runner: Any):
         obs = runner.ar_mb_obs_2.reshape(self.train_model.X.shape)

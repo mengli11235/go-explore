@@ -5,8 +5,9 @@
 ## Job name:
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
-#SBATCH --ntasks=2
-#SBATCH --cpus-per-task=2
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=16G
 #SBATCH --partition=accel --gres=gpu:2
 ## Run for 10 minutes, syntax is d-hh:mm:ss
@@ -57,10 +58,10 @@ export HOROVOD_MPI_THREADS_DISABLE=1
 cd go-explore/policy_based
 #time srun MySoftWare-exec
 
-NB_MPI_WORKERS=2
+NB_MPI_WORKERS=1
 
 # Full experiment: 16
-NB_ENVS_PER_WORKER=2
+NB_ENVS_PER_WORKER=1
 
 # Full experiment: different for each run
 SEED=0

@@ -153,7 +153,7 @@ class CellTrajectoryManager:
         print(f'Trajectories loaded: {trajectories_loaded}/{total_trajectories}')
 
     def dump(self, filename):
-        writer = tf.python_io.TFRecordWriter(filename)
+        writer = tf.compat.v1.python_io.TFRecordWriter(filename)
         for key in self.cell_trajectories:
             full_trajectory = self.get_full_trajectory(key)
             trajectory_id = tf.train.Feature(int64_list=tf.train.Int64List(value=[key]))

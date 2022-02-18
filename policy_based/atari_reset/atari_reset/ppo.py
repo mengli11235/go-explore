@@ -50,20 +50,20 @@ class Model(object):
 
         # These objects are used to store the experience of all our rollouts.
         self.A = self.train_model.pdtype.sample_placeholder([nenv * nsteps], name='action')
-        self.ADV = tf.placeholder(tf.float32, [nenv * nsteps], name='advantage')
+        self.ADV = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='advantage')
 
         # Valid allows you to ignore specific time-steps for the purpose of updating the policy
-        self.VALID = tf.placeholder(tf.float32, [nenv * nsteps], name='valid')
-        self.R = tf.placeholder(tf.float32, [nenv * nsteps], name='return')
+        self.VALID = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valid')
+        self.R = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='return')
 
         # The old negative log probability of each action (i.e. -log(pi_old(a_t|s_t)) )
-        self.OLDNEGLOGPAC = tf.placeholder(tf.float32, [nenv * nsteps], name='neglogprob')
+        self.OLDNEGLOGPAC = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='neglogprob')
 
         # The old value prediction for each state in our rollout (i.e. V_old(s_t))
-        self.OLDVPRED = tf.placeholder(tf.float32, [nenv * nsteps], name='valuepred')
+        self.OLDVPRED = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valuepred')
 
         # This is just the learning rate
-        self.LR = tf.placeholder(tf.float32, [], name='lr')
+        self.LR = tf.compat.v1.placeholder(tf.float32, [], name='lr')
 
         # We ask the model for its value prediction
         self.vpred = self.train_model.vf
@@ -72,32 +72,32 @@ class Model(object):
         neglogpac = self.train_model.pd.neglogp(self.A)
 
         # We ask the model for its entropy
-        self.entropy = tf.reduce_mean(self.VALID * self.train_model.pd.entropy())
+        self.entropy = tf.math.reduce_mean(self.VALID * self.train_model.pd.entropy())
 
         # The clipped value prediction, which is just vpred if the difference between vpred and OLDVPRED is smaller
         # than the clip range.
         vpredclipped = self.OLDVPRED + tf.clip_by_value(self.vpred - self.OLDVPRED, - cliprange, cliprange)
-        vf_losses1 = tf.square(self.vpred - self.R)
-        vf_losses2 = tf.square(vpredclipped - self.R)
-        self.vf_loss = .5 * tf.reduce_mean(self.VALID * tf.maximum(vf_losses1, vf_losses2))
+        vf_losses1 = tf.math.square(self.vpred - self.R)
+        vf_losses2 = tf.math.square(vpredclipped - self.R)
+        self.vf_loss = .5 * tf.math.reduce_mean(self.VALID * tf.math.maximum(vf_losses1, vf_losses2))
 
         # This is pi_current(a_t|s_t) / pi_old(a_t|s_t)
-        ratio = tf.exp(self.OLDNEGLOGPAC - neglogpac)
+        ratio = tf.math.exp(self.OLDNEGLOGPAC - neglogpac)
         pg_losses = -self.ADV * ratio
         pg_losses2 = -self.ADV * tf.clip_by_value(ratio, 1.0 - cliprange, 1.0 + cliprange)
-        self.pg_loss = tf.reduce_mean(self.VALID * tf.maximum(pg_losses, pg_losses2))
-        mv = tf.reduce_mean(self.VALID)
+        self.pg_loss = tf.math.reduce_mean(self.VALID * tf.math.maximum(pg_losses, pg_losses2))
+        mv = tf.math.reduce_mean(self.VALID)
 
         # This is the KL divergence (approximated) between the old and the new policy
         # (i.e. KL(pi_current(a_t|s_t), pi_old(a_t|s_t))
-        self.approxkl = .5 * tf.reduce_mean(self.VALID * tf.square(neglogpac - self.OLDNEGLOGPAC)) / mv
-        self.clipfrac = tf.reduce_mean(self.VALID * tf.to_float(tf.greater(tf.abs(ratio - 1.0), cliprange))) / mv
-        self.params = tf.trainable_variables()
-        self.l2_loss = .5 * sum([tf.reduce_sum(tf.square(p)) for p in self.params])
+        self.approxkl = .5 * tf.math.reduce_mean(self.VALID * tf.math.square(neglogpac - self.OLDNEGLOGPAC)) / mv
+        self.clipfrac = tf.math.reduce_mean(self.VALID * tf.compat.v1.to_float(tf.math.greater(tf.math.abs(ratio - 1.0), cliprange))) / mv
+        self.params = tf.compat.v1.trainable_variables()
+        self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
         self.disable_hvd = disable_hvd
 
     def finalize(self, load_path, adam_epsilon):
-        opt = tf.train.AdamOptimizer(self.LR, epsilon=adam_epsilon)
+        opt = tf.compat.v1.train.AdamOptimizer(self.LR, epsilon=adam_epsilon)
         if not self.disable_hvd:
             opt = hvd.DistributedOptimizer(opt)
         self.train_op = opt.minimize(self.loss)
@@ -105,12 +105,12 @@ class Model(object):
         self.step_fake_action = self.act_model.step_fake_action
         self.value = self.act_model.value
         self.initial_state = self.act_model.initial_state
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         if load_path and hvd.rank() == 0:
             self.load(load_path)
         if not self.disable_hvd:
             self.sess.run(hvd.broadcast_global_variables(0))
-        tf.get_default_graph().finalize()
+        tf.compat.v1.get_default_graph().finalize()
 
         self.loss_requested_dict = {self.pg_loss: 'policy_loss',
                                     self.vf_loss: 'value_loss',
@@ -158,7 +158,7 @@ class RegularModel(Model):
 
     def init(self, policy, ob_space, ac_space, nenv, nsteps, ent_coef, vf_coef, l2_coef,
              cliprange, adam_epsilon=1e-6, load_path=None, test_mode=False, disable_hvd=False):
-        self.sess = tf.get_default_session()
+        self.sess = tf.compat.v1.get_default_session()
         self.init_models(policy, ob_space, ac_space, nenv, nsteps, test_mode)
         self.init_loss(nenv, nsteps, cliprange, disable_hvd)
         self.loss = self.pg_loss - self.entropy * ent_coef + self.vf_loss * vf_coef + l2_coef * self.l2_loss

@@ -25,16 +25,16 @@ class GRUPolicyGoalConSimpleFlexEnt(object):
         nact = ac_space.n
 
         # use variables instead of placeholder to keep data on GPU if we're training
-        nn_input = tf.placeholder(tf.uint8, ob_shape, 'input')  # obs
-        goal = tf.placeholder(tf.float32, goal_shape, 'goal')  # goal
-        mask = tf.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
-        states = tf.placeholder(tf.float32, [nenv, memsize], 'hidden_state')  # states
-        entropy = tf.placeholder(tf.float32, [nbatch], 'entropy_factor')
-        fake_actions = tf.placeholder(tf.int64, [nbatch], 'fake_actions')
+        nn_input = tf.compat.v1.placeholder(tf.uint8, ob_shape, 'input')  # obs
+        goal = tf.compat.v1.placeholder(tf.float32, goal_shape, 'goal')  # goal
+        mask = tf.compat.v1.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
+        states = tf.compat.v1.placeholder(tf.float32, [nenv, memsize], 'hidden_state')  # states
+        entropy = tf.compat.v1.placeholder(tf.float32, [nbatch], 'entropy_factor')
+        fake_actions = tf.compat.v1.placeholder(tf.int64, [nbatch], 'fake_actions')
         logger.info(f'fake_actions.shape: {fake_actions.shape}')
         logger.info(f'fake_actions.dtype: {fake_actions.dtype}')
 
-        with tf.variable_scope("model", reuse=reuse):
+        with tf.compat.v1.variable_scope("model", reuse=reuse):
             logger.info(f'input.shape {nn_input.shape}')
             h = tf.nn.relu(po.conv(tf.cast(nn_input, tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
             logger.info(f'h.shape: {h.shape}')
@@ -48,14 +48,15 @@ class GRUPolicyGoalConSimpleFlexEnt(object):
             logger.info(f'g1.shape: {g1.shape}')
             h3 = tf.concat([h3, g1], axis=1)
             logger.info(f'h3.shape: {h3.shape}')
-            h4 = tf.contrib.layers.layer_norm(po.fc(h3, 'fc1', nout=memsize), center=False, scale=False,
-                                              activation_fn=tf.nn.relu)
+            layer_norma = tf.keras.layers.LayerNormalization(center=False,scale=False)
+            h4 = tf.nn.relu(layer_norma(po.fc(h3, 'fc1', nout=memsize)))
+                                             # activation_fn=tf.nn.relu
             logger.info(f'h4.shape: {h4.shape}')
             h5 = tf.reshape(h4, [nenv, nsteps, memsize])
 
             m = tf.reshape(mask, [nenv, nsteps, 1])
             cell = po.GRUCell(memsize, 'gru1', nin=memsize)
-            h6, snew = tf.nn.dynamic_rnn(cell, (h5, m), dtype=tf.float32, time_major=False,
+            h6, snew = tf.compat.v1.nn.dynamic_rnn(cell, (h5, m), dtype=tf.float32, time_major=False,
                                          initial_state=states, swap_memory=True)
             logger.info(f'h6.shape: {h6.shape}')
 
