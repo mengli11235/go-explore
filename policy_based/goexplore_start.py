@@ -26,7 +26,7 @@ tf.compat.v1.disable_eager_execution()
 try:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 except AttributeError:
-    tf.logging.set_verbosity(tf.logging.ERROR)
+    tf.compat.v1.logging.set_verbosity(tf.logging.ERROR)
 
 import horovod.tensorflow as hvd
 import numpy as np
