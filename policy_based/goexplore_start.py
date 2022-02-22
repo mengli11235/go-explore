@@ -63,6 +63,19 @@ CHECKPOINT_ABBREVIATIONS = {
     'trajectory': TRAJ_POSTFIX
 }
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if hvd.rank == 0:
+    print(f"Found the following GPUs: '{gpus}'")
+# Allow memory growth on GPU, required by Horovod
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+# Since multiple GPUs might be visible to multiple ranks it is important to
+# bind the rank to a given GPU
+if gpus:
+    print(f"Rank '{hvd.local_rank()}/{hvd.rank()}' using GPU: '{gpus[hvd.local_rank()]}'")
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+else:
+    print(f"No GPU(s) configured for ({hvd.local_rank()}/{hvd.rank()})!")
 
 def save_state(state, filename):
     p = pickle.Pickler(compress.open(filename + compress_suffix, 'wb', **compress_kwargs))
