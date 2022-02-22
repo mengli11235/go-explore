@@ -63,6 +63,7 @@ CHECKPOINT_ABBREVIATIONS = {
     'trajectory': TRAJ_POSTFIX
 }
 
+hvd.init()
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if hvd.rank == 0:
     print(f"Found the following GPUs: '{gpus}'")

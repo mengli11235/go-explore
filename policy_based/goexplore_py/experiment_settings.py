@@ -157,7 +157,6 @@ def set_global_seeds(i):
 
 
 def hrv_and_tf_init(nb_cpu, nb_envs, seed_offset):
-    hvd.init()
     master_seed = hvd.rank() * (nb_envs + 1) + seed_offset
     logger.info(f'initialized worker {hvd.rank()} with seed {master_seed}')
     set_global_seeds(master_seed)
