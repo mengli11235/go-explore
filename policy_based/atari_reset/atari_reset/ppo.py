@@ -64,6 +64,7 @@ class Model(object):
 
         # This is just the learning rate
         self.LR = tf.compat.v1.placeholder(tf.float32, [], name='lr')
+
         # We ask the model for its value prediction
         self.vpred = self.train_model.vf
 
@@ -96,8 +97,7 @@ class Model(object):
         self.disable_hvd = disable_hvd
 
     def finalize(self, load_path, adam_epsilon):
-        print('finalize:',str(hvd.local_rank()))
-        opt = tf.optimzer.Adam(self.LR, epsilon=adam_epsilon)
+        opt = tf.compat.v1.train.AdamOptimizer(self.LR, epsilon=adam_epsilon)
         if not self.disable_hvd:
             opt = hvd.DistributedOptimizer(opt)
         self.train_op = opt.minimize(self.loss)
@@ -171,7 +171,6 @@ class RegularModel(Model):
         self.train_model = policy(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=True)
 
     def train(self, lr, obs, returns, advs, masks, actions, values, neglogpacs, valids, increase_ent, states=None):
-        print(lr)
         td_map = {self.LR: lr, self.train_model.X: obs, self.A: actions, self.ADV: advs, self.VALID: valids,
                   self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values,
                   self.train_model.E: increase_ent}
