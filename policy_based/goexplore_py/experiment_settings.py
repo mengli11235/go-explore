@@ -164,21 +164,8 @@ def hrv_and_tf_init(nb_cpu, nb_envs, seed_offset):
     config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=nb_cpu,
                             inter_op_parallelism_threads=nb_cpu)
-    #config.gpu_options.allow_growth = True
-    #config.gpu_options.visible_device_list = str(hvd.local_rank())
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if hvd.rank == 0:
-        print(f"Found the following GPUs: '{gpus}'")
-    # Allow memory growth on GPU, required by Horovod
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    # Since multiple GPUs might be visible to multiple ranks it is important to
-    # bind the rank to a given GPU
-    if gpus:
-        print(f"Rank '{hvd.local_rank()}/{hvd.rank()}' using GPU: '{gpus[hvd.local_rank()]}'")
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-    else:
-        print(f"No GPU(s) configured for ({hvd.local_rank()}/{hvd.rank()})!")
+    config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
     session = tf.compat.v1.Session(config=config)
     return session, master_seed
 
