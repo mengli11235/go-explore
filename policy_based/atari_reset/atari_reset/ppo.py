@@ -97,7 +97,12 @@ class Model(object):
         self.disable_hvd = disable_hvd
 
     def finalize(self, load_path, adam_epsilon):
+<<<<<<< HEAD
         opt = tf.compat.v1.train.AdamOptimizer(self.LR, epsilon=adam_epsilon)
+=======
+        print('finalize:',str(hvd.local_rank()))
+        opt = tf.keras.optimizers.Adam(self.LR, epsilon=adam_epsilon)
+>>>>>>> d1157f92789f3fff653199d2fa0d489393987c4e
         if not self.disable_hvd:
             opt = hvd.DistributedOptimizer(opt)
         self.train_op = opt.minimize(self.loss)
