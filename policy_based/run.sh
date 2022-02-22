@@ -6,12 +6,10 @@
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
 #SBATCH --ntasks=2
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=32G
-#SBATCH --partition=accel --gres=gpu:2
-## Run for 10 minutes, syntax is d-hh:mm:ss
+#SBATCH --partition=accel --gres=gpu:4
 #SBATCH --time=7-00:00:00 
 
 # you may not place bash commands before the last SBATCH directive
@@ -36,7 +34,7 @@ source /fp/homes01/u01/ec-limeng/tensor_env/bin/activate
 
 # Export settings expected by Horovod and mpirun
 export OMPI_MCA_pml="ob1"
-export HOROVOD_MPI_THREADS_DISABLE=1
+#export HOROVOD_MPI_THREADS_DISABLE=1
 
 #######################################################
 ## Prepare jobs, moving input files and making sure 
