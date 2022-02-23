@@ -165,7 +165,7 @@ def hrv_and_tf_init(nb_cpu, nb_envs, seed_offset):
                             inter_op_parallelism_threads=nb_cpu)
     # config.gpu_options.allow_growth = True
     # config.gpu_options.visible_device_list = str(hvd.local_rank())
-    session = tf.compat.v1.Session(config=config)
+    session = tf.compat.v1.Session()
     return session, master_seed
 
 
