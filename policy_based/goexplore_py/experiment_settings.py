@@ -1054,7 +1054,7 @@ def setup(resolution,
         local_comm = mpi.get_comm_world().Split_type(mpi.get_comm_type_shared())
 
         if local_comm.rank == 0:
-            cell_trajectory_manager.sess = tf.get_default_session()
+            cell_trajectory_manager.sess = tf.compat.v1.get_default_session()
             logger.info('Loading full trajectories...')
             cell_trajectory_manager.run_load_op()
             logger.info('Full trajectories loaded.')
