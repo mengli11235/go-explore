@@ -114,7 +114,7 @@ class CellTrajectoryManager:
 
         self.read_header_feature = tf.io.parse_single_example(get_next, header_feature)
         self.read_body_feature = tf.io.parse_single_example(get_next, body_feature)
-        self.get_obs = tf.expand_dims(tf.decode_raw(self.read_body_feature['obs'], out_type=tf.int8), axis=1)
+        self.get_obs = tf.expand_dims(tf.compat.v1.decode_raw(self.read_body_feature['obs'], out_type=tf.int8), axis=1)
 
     def run_load_op(self):
         nb_traj_tuples = 0
