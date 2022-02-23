@@ -108,7 +108,7 @@ class CellTrajectoryManager:
 
         dataset = tf.data.TFRecordDataset(filename)
 
-        iterator = dataset.make_one_shot_iterator()
+        iterator = iter(dataset)
 
         get_next = iterator.get_next()
 
