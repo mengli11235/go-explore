@@ -60,7 +60,7 @@ cd go-explore/policy_based
 NB_MPI_WORKERS=2
 
 # Full experiment: 16
-NB_ENVS_PER_WORKER=2
+NB_ENVS_PER_WORKER=16
 
 # Full experiment: different for each run
 SEED=0
