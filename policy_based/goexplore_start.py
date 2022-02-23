@@ -63,6 +63,7 @@ CHECKPOINT_ABBREVIATIONS = {
     'trajectory': TRAJ_POSTFIX
 }
 
+mpi.init_mpi()
 hvd.init()
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if hvd.rank == 0:
@@ -562,7 +563,6 @@ def find_checkpoint(base_path):
 
 def run(kwargs):
     global PROFILER
-    mpi.init_mpi()
     np.set_printoptions(threshold=sys.maxsize)
     process_defaults(kwargs)
 
