@@ -106,9 +106,9 @@ class CellTrajectoryManager:
             'ge_reward': tf.io.FixedLenFeature([], tf.float32),
         }
 
-        dataset = tf.data.TFRecordDataset(filename)
+        dataset = tf.compat.v1.data.TFRecordDataset(filename)
 
-        iterator = iter(dataset)
+        iterator = dataset.make_one_shot_iterator()
 
         get_next = iterator.get_next()
 
