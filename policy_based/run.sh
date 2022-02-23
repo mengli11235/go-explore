@@ -33,7 +33,7 @@ module list
 source /fp/homes01/u01/ec-limeng/tensor_env/bin/activate
 
 # Export settings expected by Horovod and mpirun
-export OMPI_MCA_pml="ob1"
+#export OMPI_MCA_pml="ob1"
 #export HOROVOD_MPI_THREADS_DISABLE=1
 
 #######################################################
