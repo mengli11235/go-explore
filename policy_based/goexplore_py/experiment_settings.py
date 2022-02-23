@@ -173,7 +173,7 @@ def hrv_and_tf_init(nb_cpu, nb_envs, seed_offset):
         print(f"No GPU(s) configured for ({hvd.local_rank()}/{hvd.rank()})!")
     tf.config.threading.set_inter_op_parallelism_threads(nb_cpu)
     tf.config.threading.set_intra_op_parallelism_threads(nb_cpu)
-    tf.config.set_soft_device_placement(enabled)
+    tf.config.set_soft_device_placement(True)
 
     master_seed = hvd.rank() * (nb_envs + 1) + seed_offset
     logger.info(f'initialized worker {hvd.rank()} with seed {master_seed}')
