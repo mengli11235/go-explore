@@ -63,22 +63,6 @@ CHECKPOINT_ABBREVIATIONS = {
     'trajectory': TRAJ_POSTFIX
 }
 
-mpi.init_mpi()
-hvd.init()
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if hvd.rank == 0:
-    print(f"Found the following GPUs: '{gpus}'")
-# Allow memory growth on GPU, required by Horovod
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-# Since multiple GPUs might be visible to multiple ranks it is important to
-# bind the rank to a given GPU
-if gpus:
-    print(f"Rank '{hvd.local_rank()}/{hvd.rank()}' using GPU: '{gpus[hvd.local_rank()]}'")
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-else:
-    print(f"No GPU(s) configured for ({hvd.local_rank()}/{hvd.rank()})!")
-
 def save_state(state, filename):
     p = pickle.Pickler(compress.open(filename + compress_suffix, 'wb', **compress_kwargs))
     p.fast = True
@@ -563,6 +547,7 @@ def find_checkpoint(base_path):
 
 def run(kwargs):
     global PROFILER
+    mpi.init_mpi()
     np.set_printoptions(threshold=sys.maxsize)
     process_defaults(kwargs)
 
@@ -618,6 +603,20 @@ def run(kwargs):
 
     # We need to setup the MPI environment before performing any data processing
     nb_cpu = 2
+    hvd.init()
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if hvd.rank == 0:
+        print(f"Found the following GPUs: '{gpus}'")
+    # Allow memory growth on GPU, required by Horovod
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    # Since multiple GPUs might be visible to multiple ranks it is important to
+    # bind the rank to a given GPU
+    if gpus:
+        print(f"Rank '{hvd.local_rank()}/{hvd.rank()}' using GPU: '{gpus[hvd.local_rank()]}'")
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+    else:
+        print(f"No GPU(s) configured for ({hvd.local_rank()}/{hvd.rank()})!")
     session, master_seed = hrv_and_tf_init(nb_cpu, kwargs['nb_envs'],  kwargs['seed'])
     with session.as_default():
         worker_seed_start = master_seed + 1
