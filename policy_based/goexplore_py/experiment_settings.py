@@ -995,7 +995,7 @@ def setup(resolution,
                    disable_hvd=bool(disable_hvd))
     elif sil == 'dt':
         model = dt_models.Model()
-        model.init(policy=policy,
+        model.init(model=policy,
                    ob_space=env.observation_space,
                    ac_space=env.action_space,
                    nenv=env.num_envs,
