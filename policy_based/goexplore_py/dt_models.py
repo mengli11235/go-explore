@@ -226,7 +226,7 @@ class GPT(object):
                 action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
 
-                token_embeddings = np.zeros((nenv, nsteps*3 - int(test_mode), n_embed), dtype=np.float32)
+                token_embeddings = np.zeros((nenv, nsteps*3 - int(test_mode), n_embed), dtype=np.float32).tolist()
                 token_embeddings[:,::3,:] = goal_embeddings
                 token_embeddings[:,1::3,:] = input_embeddings
                 token_embeddings[:,2::3,:] = action_embeddings[:,-nsteps + int(test_mode):,:]
