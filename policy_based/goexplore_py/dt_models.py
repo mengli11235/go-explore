@@ -290,8 +290,7 @@ class GPT(object):
         return self.block_size
 
 class Model(object):
-    def __init__(self, model, ob_space, ac_space, nenv, nsteps, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
-        self.sess = tf.compat.v1.get_default_session()
+    def __init__(self):
         self.A = None
         self.VALID = None
         self.R = None
@@ -310,6 +309,9 @@ class Model(object):
         self.act_model = None
         self.train_model = None
         self.disable_hvd = None
+        
+    def init(self, model, ob_space, ac_space, nenv, nsteps, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
+        self.sess = tf.compat.v1.get_default_session()
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, cliprange, disable_hvd)
         self.loss = self.dt_loss
