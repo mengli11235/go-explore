@@ -168,11 +168,11 @@ class GPT(object):
         nh, nw, nc = ob_space.shape #12*80*105
         nbatch = nenv*nsteps
         ob_shape = (nbatch, nh, nw, nc)
-        ac_shape = (nbatch, ac_space)
         logger.info(f'goal_space.shape: {goal_space.shape}')
         goal_shape = tuple([nbatch] + list(goal_space.shape))
         logger.info(f'goal_shape: {goal_shape}')
         nact = ac_space.n
+        ac_shape = (nbatch, nact)
 
         # use variables instead of placeholder to keep data on GPU if we're training
         nn_input = tf.compat.v1.placeholder(tf.uint8, ob_shape, 'input')  # obs
