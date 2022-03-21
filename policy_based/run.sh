@@ -5,11 +5,11 @@
 ## Job name:
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
-#SBATCH --ntasks=4
+#SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=32G
-#SBATCH --partition=accel --gres=gpu:4
+#SBATCH --partition=accel --gres=gpu:1
 #SBATCH --time=7-00:00:00 
 
 # you may not place bash commands before the last SBATCH directive
@@ -57,7 +57,7 @@ export OMPI_MCA_pml="ob1"
 cd go-explore/policy_based
 #time srun MySoftWare-exec
 
-NB_MPI_WORKERS=4
+NB_MPI_WORKERS=1
 
 # Full experiment: 16
 NB_ENVS_PER_WORKER=16
@@ -95,6 +95,6 @@ CELL_REPRESENTATION_OPTIONS="--cell_representation level_room_keys_x_y --resolut
 EPISODE_OPTIONS="--trajectory_tracker sparse_soft --soft_traj_win_size 10 --random_exp_prob 0.5 --max_actions_to_goal 1000 --max_actions_to_new_cell 1000 --delay 0"
 
 CHECKPOINT_OPTIONS="--checkpoint_compute ${CHECKPOINT} --clear_checkpoints all"
-TRAINING_OPTIONS="--goal_rep onehot --gamma 0.99 --learning_rate=2.5e-4 --no_exploration_gradients --sil=sil --max_compute_steps 12000000000"
+TRAINING_OPTIONS="--goal_rep onehot --gamma 0.99 --learning_rate=2.5e-4 --no_exploration_gradients --sil=dt --max_compute_steps 12000000000"
 MISC_OPTIONS="--low_prob_traj_tresh 0.01 --start_method spawn --log_info INFO --log_files __main__"
-time mpirun -n ${NB_MPI_WORKERS} python goexplore_start.py --base_path ~/temp --seed ${SEED} --continue --nb_envs ${NB_ENVS_PER_WORKER} ${REWARD_OPTIONS} ${CELL_SELECTION_OPTIONS} ${ENTROPY_INC_OPTIONS} ${CHECKPOINT_OPTIONS} ${CELL_REPRESENTATION_OPTIONS} ${EPISODE_OPTIONS} ${GAME_OPTIONS} ${TRAINING_OPTIONS} ${MISC_OPTIONS}
+time mpirun -n ${NB_MPI_WORKERS} python goexplore_start.py --base_path ~/temp1 --seed ${SEED} --continue --nb_envs ${NB_ENVS_PER_WORKER} ${REWARD_OPTIONS} ${CELL_SELECTION_OPTIONS} ${ENTROPY_INC_OPTIONS} ${CHECKPOINT_OPTIONS} ${CELL_REPRESENTATION_OPTIONS} ${EPISODE_OPTIONS} ${GAME_OPTIONS} ${TRAINING_OPTIONS} ${MISC_OPTIONS}

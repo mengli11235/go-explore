@@ -22,10 +22,13 @@ import logging
 
 import atari_reset.atari_reset.ppo as ppo
 import atari_reset.atari_reset.wrappers as wrappers
+import atari_reset.atari_reset.dt as dt
 
 import goexplore_py.ge_wrappers as ge_wrappers
 import goexplore_py.ge_policies as ge_policies
 import goexplore_py.ge_models as ge_models
+import goexplore_py.dt_models as dt_models
+
 import goexplore_py.ge_runners as ge_runners
 import goexplore_py.trajectory_trackers as trajectory_trackers
 import goexplore_py.randselectors as randselectors
@@ -468,7 +471,7 @@ def get_env(game_name,
 
 
 def get_policy(policy_name):
-    policy = {'gru_simple_goal': ge_policies.GRUPolicyGoalConSimpleFlexEnt}[policy_name]
+    policy = {'gru_simple_goal': ge_policies.GRUPolicyGoalConSimpleFlexEnt, 'dt':dt_models.GPT}[policy_name]
     return policy
 
 
@@ -952,6 +955,8 @@ def setup(resolution,
 
     # Get the policy
     logger.info('Obtaining the policy')
+    if sil == 'dt':
+        policy_name = 'dt'
     policy = get_policy(policy_name)
 
     logger.info('Initializing the model')
@@ -988,12 +993,25 @@ def setup(resolution,
                    test_mode=test_mode,
                    goal_space=env.goal_space,
                    disable_hvd=bool(disable_hvd))
+    elif sil == 'dt':
+        model = dt_models.Model()
+        model.init(policy=policy,
+                   ob_space=env.observation_space,
+                   ac_space=env.action_space,
+                   nenv=env.num_envs,
+                   nsteps=num_steps + num_steps // 2,
+                   load_path=model_path,
+                   test_mode=test_mode,
+                   goal_space=env.goal_space,
+                   disable_hvd=bool(disable_hvd))
     else:
         raise NotImplementedError('Sil has to be one of: "sil", or "none".')
 
     logger.info('Creating runner')
     if sil == 'sil' or sil == 'nosil' or sil == 'noframes':
         runner_class = ge_runners.RunnerFlexEntSilProper
+    elif sil == 'dt':
+        runner_class = dt.Runner
     elif sil == 'none':
         runner_class = ppo.Runner
     else:
