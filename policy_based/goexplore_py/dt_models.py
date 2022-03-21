@@ -226,16 +226,17 @@ class GPT(object):
                 action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
 
-                token_embeddings = tf.zeros((nenv, nsteps*3 - int(test_mode), n_embed), dtype=tf.dtypes.float32)
-                token_embeddings[:,::3,:] = goal_embeddings
-                token_embeddings[:,1::3,:] = input_embeddings
-                token_embeddings[:,2::3,:] = action_embeddings[:,-nsteps + int(test_mode):,:]
+                token_embeddings = np.zeros((nenv, nsteps*3 - int(test_mode), n_embed), dtype=np.float32)
+                token_embeddings[:,::3,:] = goal_embeddings.numpy()
+                token_embeddings[:,1::3,:] = input_embeddings.numpy()
+                token_embeddings[:,2::3,:] = action_embeddings.numpy()[:,-nsteps + int(test_mode):,:]
             else: # only happens at very first timestep of evaluation
                 # goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed2', nout=n_embd, init_scale=0.02))
-                token_embeddings = tf.zeros((nenv, nsteps*2, n_embed), dtype=tf.dtypes.float32)
-                token_embeddings[:,::2,:] = goal_embeddings # really just [:,0,:]
-                token_embeddings[:,1::2,:] = input_embeddings # really just [:,1,:]
-
+                token_embeddings = np.zeros((nenv, nsteps*2, n_embed), dtype=np.float32)
+                token_embeddings[:,::2,:] = goal_embeddings.numpy() # really just [:,0,:]
+                token_embeddings[:,1::2,:] = input_embeddings.numpy() # really just [:,1,:]
+                
+            token_embeddings = tf.convert_to_tensor(token_embeddings, np.float32)
             all_global_pos_emb = tf.repeat(global_pos_emb, nenv, axis=0) # batch_size, traj_length, n_embd
 
             position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(reshape(timesteps, (nenv, nsteps, 1)), n_embed, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
