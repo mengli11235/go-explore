@@ -23,7 +23,7 @@ from typing import Any
 import joblib
 import numpy as np
 import tensorflow as tf
-#import horovod.tensorflow as hvd
+import horovod.tensorflow as hvd
 import sys
 import copy
 import cv2
