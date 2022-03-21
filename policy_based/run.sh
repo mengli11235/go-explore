@@ -5,11 +5,11 @@
 ## Job name:
 #SBATCH --job-name=go-explore
 ## Number of tasks (aka processes) to start: Pure mpi, one cpu per task
-#SBATCH --ntasks=2
+#SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=32G
-#SBATCH --partition=accel --gres=gpu:2
+#SBATCH --partition=accel --gres=gpu:4
 #SBATCH --time=7-00:00:00 
 
 # you may not place bash commands before the last SBATCH directive
@@ -57,7 +57,7 @@ export OMPI_MCA_pml="ob1"
 cd go-explore/policy_based
 #time srun MySoftWare-exec
 
-NB_MPI_WORKERS=2
+NB_MPI_WORKERS=4
 
 # Full experiment: 16
 NB_ENVS_PER_WORKER=16
