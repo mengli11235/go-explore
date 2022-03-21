@@ -164,7 +164,7 @@ def blocks(x, n_head, idx):
 class GPT(object):
     """  the full GPT language model, with a context size of block_size """
 
-    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, n_embd=768, n_head=12, n_layer=12, test_mode=False, reuse=False, goal_space=None):
+    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, n_embed=768, n_head=12, n_layer=12, test_mode=False, reuse=False, goal_space=None):
         nh, nw, nc = ob_space.shape #12*80*105
         nbatch = nenv*nsteps
         ob_shape = (nbatch, nh, nw, nc)
