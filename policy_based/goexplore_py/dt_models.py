@@ -190,8 +190,11 @@ class GPT(object):
             # input embedding stem
             #tok_emb = tf.keras.layers.Embedding(vocab_size, n_embd, embeddings_initializer=normc_init(0.02))
             # self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size, config.n_embd))
-            pos_emb =  tf.Variable(tf.zeros(1, nsteps + 1, n_embd))
-            global_pos_emb =  tf.Variable(tf.zeros(1, nsteps+1, n_embd))
+            pos_emb = tf.compat.v1.get_variable("pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
+            global_pos_emb = tf.compat.v1.get_variable("global_pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
+
+            # pos_emb =  tf.Variable(tf.zeros(1, nsteps + 1, n_embd))
+            # global_pos_emb =  tf.Variable(tf.zeros(1, nsteps+1, n_embd))
             # decoder head
             ln_f = tf.keras.layers.LayerNormalization(center=False,scale=False, epsilon=1e-5)
 
