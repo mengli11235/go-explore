@@ -193,12 +193,12 @@ class GPT(object):
             # pos_emb = tf.compat.v1.get_variable("pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
             # global_pos_emb = tf.compat.v1.get_variable("global_pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
 
-            pos_emb =  tf.Variable(tf.zeros((1, nsteps + 1, n_embd)))
-            global_pos_emb =  tf.Variable(tf.zeros((1, nsteps+1, n_embd)))
+            pos_emb =  tf.Variable(tf.zeros((1, nsteps + 1, n_embed)))
+            global_pos_emb =  tf.Variable(tf.zeros((1, nsteps+1, n_embed)))
             # decoder head
             ln_f = tf.keras.layers.LayerNormalization(center=False,scale=False, epsilon=1e-5)
 
-            action_embed = tf.keras.layers.Embedding(nact, n_embd, embeddings_initializer=normc_init(0.02))
+            action_embed = tf.keras.layers.Embedding(nact, n_embed, embeddings_initializer=normc_init(0.02))
 
             logger.info(f'input.shape {nn_input.shape}')
             h = tf.nn.relu(conv(tf.cast(tf.reshape(nn_input, (-1, nh, nw, nc)), tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
@@ -209,7 +209,7 @@ class GPT(object):
             logger.info(f'h3.shape: {h3.shape}')
             h3 = to2d(h3)
             logger.info(f'h3.shape: {h3.shape}')
-            input_embeddings = tf.nn.relu(fc(h3, 'fc1', nout=n_embd, init_scale=0.02))
+            input_embeddings = tf.nn.relu(fc(h3, 'fc1', nout=n_embed, init_scale=0.02))
             input_embeddings = tf.reshape(input_embeddings, (nenv, nsteps, n_embed))
 
             g1 = tf.cast(goal, tf.float32)
@@ -218,7 +218,7 @@ class GPT(object):
             # logger.info(f'h3.shape: {h3.shape}')
             # layer_norma = tf.keras.layers.LayerNormalization(center=False,scale=False)
             #nn.init.normal_(self.action_embeddings[0].weight, mean=0.0, std=0.02)
-            goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed1', nout=n_embd, init_scale=0.02))
+            goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed1', nout=n_embed, init_scale=0.02))
             goal_embeddings = tf.reshape(goal_embeddings, (nenv, nsteps, n_embed))
 
             if actions is not None: 
@@ -226,19 +226,19 @@ class GPT(object):
                 action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
 
-                token_embeddings = tf.zeros((nenv, nsteps*3 - int(test_mode), n_embd), dtype=tf.dtypes.float32)
+                token_embeddings = tf.zeros((nenv, nsteps*3 - int(test_mode), n_embed), dtype=tf.dtypes.float32)
                 token_embeddings[:,::3,:] = goal_embeddings
                 token_embeddings[:,1::3,:] = input_embeddings
                 token_embeddings[:,2::3,:] = action_embeddings[:,-nsteps + int(test_mode):,:]
             else: # only happens at very first timestep of evaluation
                 # goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed2', nout=n_embd, init_scale=0.02))
-                token_embeddings = tf.zeros((nenv, nsteps*2, n_embd), dtype=tf.dtypes.float32)
+                token_embeddings = tf.zeros((nenv, nsteps*2, n_embed), dtype=tf.dtypes.float32)
                 token_embeddings[:,::2,:] = goal_embeddings # really just [:,0,:]
                 token_embeddings[:,1::2,:] = input_embeddings # really just [:,1,:]
 
             all_global_pos_emb = tf.repeat(global_pos_emb, nenv, axis=0) # batch_size, traj_length, n_embd
 
-            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(reshape(timesteps, (nenv, nsteps, 1)), n_embd, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
+            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(reshape(timesteps, (nenv, nsteps, 1)), n_embed, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
             # (batch_size, 1, n_embd) + (1, traj_length, n_embd)
 
             x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
