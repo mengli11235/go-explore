@@ -164,7 +164,7 @@ def blocks(x, n_head, idx):
 class GPT(object):
     """  the full GPT language model, with a context size of block_size """
 
-    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, vocab_size, n_embd, n_head, n_layer, test_mode=False, reuse=False, goal_space=None):
+    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, n_embd=768, n_head=12, n_layer=12, test_mode=False, reuse=False, goal_space=None):
         nh, nw, nc = ob_space.shape #12*80*105
         nbatch = nenv*nsteps
         ob_shape = (nbatch, nh, nw, nc)
@@ -195,7 +195,7 @@ class GPT(object):
             # decoder head
             ln_f = tf.keras.layers.LayerNormalization(center=False,scale=False, epsilon=1e-5)
 
-            action_embed = tf.keras.layers.Embedding(vocab_size, n_embd, embeddings_initializer=normc_init(0.02))
+            action_embed = tf.keras.layers.Embedding(nact, n_embd, embeddings_initializer=normc_init(0.02))
 
             logger.info(f'input.shape {nn_input.shape}')
             h = tf.nn.relu(conv(tf.cast(nn_input.reshape((-1, nh, nw, nc)), tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
@@ -242,7 +242,7 @@ class GPT(object):
             for i in range(n_layer):
                 x = blocks(x, n_head, str(i))
             x = ln_f(x)
-            logits = fc(x, 'head', nout=vocab_size, init_scale=0.02)
+            logits = fc(x, 'head', nout=nact, init_scale=0.02)
 
             if actions is not None:
                 logits = logits[:, 1::3, :] # only keep predictions from input_embeddings
