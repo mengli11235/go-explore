@@ -201,7 +201,7 @@ class GPT(object):
             action_embed = tf.keras.layers.Embedding(nact, n_embd, embeddings_initializer=normc_init(0.02))
 
             logger.info(f'input.shape {nn_input.shape}')
-            h = tf.nn.relu(conv(tf.cast(nn_input.reshape((-1, nh, nw, nc)), tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
+            h = tf.nn.relu(conv(tf.cast(tf.reshape(nn_input, (-1, nh, nw, nc)), tf.float32)/255., 'c1', noutchannels=64, filtsize=8, stride=4))
             logger.info(f'h.shape: {h.shape}')
             h2 = tf.nn.relu(conv(h, 'c2', noutchannels=128, filtsize=4, stride=2))
             logger.info(f'h2.shape: {h2.shape}')
@@ -210,7 +210,7 @@ class GPT(object):
             h3 = to2d(h3)
             logger.info(f'h3.shape: {h3.shape}')
             input_embeddings = tf.nn.relu(fc(h3, 'fc1', nout=n_embd, init_scale=0.02))
-            input_embeddings = input_embeddings.reshape((nenv, nsteps, n_embed))
+            input_embeddings = tf.reshape(input_embeddings, (nenv, nsteps, n_embed))
 
             g1 = tf.cast(goal, tf.float32)
             logger.info(f'g1.shape: {g1.shape}')
@@ -219,11 +219,11 @@ class GPT(object):
             # layer_norma = tf.keras.layers.LayerNormalization(center=False,scale=False)
             #nn.init.normal_(self.action_embeddings[0].weight, mean=0.0, std=0.02)
             goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed1', nout=n_embd, init_scale=0.02))
-            goal_embeddings = goal_embeddings.reshape((nenv, nsteps, n_embed))
+            goal_embeddings = tf.reshape(goal_embeddings, (nenv, nsteps, n_embed))
 
             if actions is not None: 
                 action_embeddings = tf.math.tanh(action_embed(actions))
-                action_embeddings = action_embeddings.reshape((nenv, nsteps, n_embed))
+                action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
 
                 token_embeddings = tf.zeros((nenv, nsteps*3 - int(test_mode), n_embd), dtype=tf.dtypes.float32)
@@ -238,7 +238,7 @@ class GPT(object):
 
             all_global_pos_emb = tf.repeat(global_pos_emb, nenv, axis=0) # batch_size, traj_length, n_embd
 
-            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(timesteps.reshape((nenv, nsteps, 1)), n_embd, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
+            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(reshape(timesteps, (nenv, nsteps, 1)), n_embd, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
             # (batch_size, 1, n_embd) + (1, traj_length, n_embd)
 
             x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
@@ -335,7 +335,7 @@ class Model(object):
         # We ask the model for its entropy
         #self.entropy = tf.math.reduce_mean(self.VALID * self.train_model.pd.entropy())
 
-        self.dt_loss = tf.nn.softmax_cross_entropy_with_logits(self.A.reshape(-1), logits.reshape(-1, logits.shape.as_list()[-1]))
+        self.dt_loss = tf.nn.softmax_cross_entropy_with_logits(self.A.reshape(-1), tf.reshape(logits, (-1, logits.shape.as_list()[-1])))
 
         self.params = tf.compat.v1.trainable_variables()
         # self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
@@ -397,7 +397,7 @@ class Model(object):
 
     def train_from_runner(self, lr: float, runner: Any):
         return self.train(lr,
-                          runner.ar_mb_obs_2.reshape(self.train_model.X.shape),
+                          tf.reshape(runner.ar_mb_obs_2, self.train_model.X.shape),
                           runner.ar_mb_goals,
                           runner.ar_mb_timesteps,
 
