@@ -173,7 +173,7 @@ class Runner(object):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, mb_timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals[-1], mb_dones[-1], mb_actions, mb_timesteps, mb_increase_ent[-1])
+        return self.model.step(obs, mb_goals[-1], mb_actions, mb_dones[-1], mb_timesteps, mb_increase_ent[-1])
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
