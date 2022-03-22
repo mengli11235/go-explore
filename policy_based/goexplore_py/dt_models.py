@@ -254,7 +254,7 @@ class GPT(object):
 
 
         self.pdtype = make_pdtype(ac_space)
-        self.pd = self.pdtype.pdfromflat(pi)
+        self.pd = self.pdtype.pdfromflat(logits)
         a0 = self.pd.sample()
         logger.info(f'a0.shape: {a0.shape}')
         logger.info(f'a0.dtype: {a0.dtype}')
