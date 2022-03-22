@@ -159,7 +159,7 @@ class Runner(object):
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
 
-            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
+            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, None, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.steps_taken)
 
@@ -173,7 +173,7 @@ class Runner(object):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, mb_timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals[-1], mb_dones[-1], mb_actions[-1], mb_timesteps, mb_increase_ent[-1])
+        return self.model.step(obs, mb_goals[-1], mb_dones[-1], mb_actions, mb_timesteps, mb_increase_ent[-1])
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
