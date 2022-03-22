@@ -193,7 +193,7 @@ class GPT(object):
             # pos_emb = tf.compat.v1.get_variable("pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
             # global_pos_emb = tf.compat.v1.get_variable("global_pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
 
-            pos_emb =  tf.Variable(tf.zeros((1, nsteps + 1, n_embed)))
+            pos_emb =  tf.Variable(tf.zeros((1, 3*nsteps + 1, n_embed)))
             global_pos_emb =  tf.Variable(tf.zeros((1, nsteps+1, n_embed)))
             # decoder head
             ln_f = tf.keras.layers.LayerNormalization(center=False,scale=False, epsilon=1e-5)
