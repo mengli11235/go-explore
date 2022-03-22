@@ -129,9 +129,9 @@ def attn(x, n_head, idx, layer_past=None):
     with tf.compat.v1.variable_scope(idx):
         mask = tf.Variable(np.tril(np.ones((T+1, T+1))).reshape((1, 1, T+1, T+1)), trainable=False)
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        k = tf.transpose(tf.reshape(fc(to2d(x), 'key', nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
-        q = tf.transpose(tf.reshape(fc(to2d(x), 'value', nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
-        v = tf.transpose(tf.reshape(fc(to2d(x), 'query', nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        k = tf.transpose(tf.reshape(fc(to2d(x), 'key'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        q = tf.transpose(tf.reshape(fc(to2d(x), 'value'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        v = tf.transpose(tf.reshape(fc(to2d(x), 'query'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ tf.transpose(k, (0, 1, 3, 2))) * (1.0 / tf.math.sqrt(tf.cast(k.shape.as_list()[-1], dtype=tf.float32)))
@@ -143,7 +143,7 @@ def attn(x, n_head, idx, layer_past=None):
         y = tf.reshape(tf.transpose(y, (0, 2, 1, 3)), (B, T, C)) # re-assemble all head outputs side by side
 
         # output projection
-        y = tf.nn.dropout(fc(to2d(y), 'att_output', nout=C*T, init_scale=0.02), 0.1)
+        y = tf.nn.dropout(fc(to2d(y), 'att_output'+idx, nout=C*T, init_scale=0.02), 0.1)
         return tf.reshape(y, (B, T, C))
 
 
