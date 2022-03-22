@@ -193,7 +193,7 @@ class GPT(object):
             # pos_emb = tf.compat.v1.get_variable("pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
             # global_pos_emb = tf.compat.v1.get_variable("global_pos_embed", [1, nsteps+1, n_embd], initializer=ortho_init(0.02))
 
-            pos_emb =  tf.Variable(tf.zeros((1, 3*nsteps + 1, n_embed)))
+            pos_emb =  tf.Variable(tf.zeros((1, 3*nsteps, n_embed)))
             global_pos_emb =  tf.Variable(tf.zeros((1, nsteps+1, n_embed)))
             # decoder head
             ln_f = tf.keras.layers.LayerNormalization(center=False,scale=False, epsilon=1e-5)
@@ -244,7 +244,7 @@ class GPT(object):
             for i in range(n_layer):
                 x = blocks(x, n_head, str(i))
             x = ln_f(x)
-            logits = fc(x, 'head', nout=nact, init_scale=0.02)
+            logits = tf.reshape(fc(to2d(x), 'head', nout=token_embeddings.shape.as_list()[1]*nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
 
             if actions is not None:
                 logits = logits[:, 1::3, :] # only keep predictions from input_embeddings
