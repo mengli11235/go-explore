@@ -316,11 +316,11 @@ class Model(object):
     def init(self, model, ob_space, ac_space, nenv, nsteps, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
         self.sess = tf.compat.v1.get_default_session()
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
-        self.init_loss(nenv, nsteps, cliprange, disable_hvd)
+        self.init_loss(nenv, nsteps, disable_hvd)
         self.loss = self.dt_loss
         self.finalize(load_path, adam_epsilon)
 
-    def init_loss(self, nenv, nsteps, cliprange, disable_hvd):
+    def init_loss(self, nenv, nsteps, disable_hvd):
 
         # These objects are used to store the experience of all our rollouts.
         self.A = self.train_model.pdtype.sample_placeholder([nenv * nsteps], name='action')
