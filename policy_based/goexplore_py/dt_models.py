@@ -177,7 +177,7 @@ class GPT(object):
 
         # use variables instead of placeholder to keep data on GPU if we're training
         nn_input = tf.compat.v1.placeholder(tf.int64, ob_shape, 'input')  # obs
-        actions = tf.compat.v1.placeholder(tf.int64, (nbatch, 1), 'actions')  # actions
+        actions = tf.compat.v1.placeholder(tf.int64, [nbatch], 'actions')  # actions
         timesteps = tf.compat.v1.placeholder(tf.int64, (nenv, 1, 1), 'timesteps')  # timesteps
         goal = tf.compat.v1.placeholder(tf.float32, goal_shape, 'goal')  # goal
         mask = tf.compat.v1.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
@@ -259,18 +259,19 @@ class GPT(object):
         logger.info(f'a0.shape: {a0.shape}')
         logger.info(f'a0.dtype: {a0.dtype}')
 
-        def step(local_ob, local_goal, local_mask, local_timesteps, local_increase_ent):
+        def step(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent):
             return sess.run([a0, logits],
                             {nn_input: local_ob, mask: local_mask, timesteps: local_timesteps, entropy: local_increase_ent,
-                             goal: local_goal})
+                             goal: local_goal, actions:local_actions})
 
-        def step_fake_action(local_ob, local_goal, local_mask, local_timesteps, local_increase_ent, local_fake_action):
+        def step_fake_action(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent, local_fake_action):
             return sess.run([a0, logits],
                             {nn_input: local_ob,
                              mask: local_mask,
                              timesteps: local_timesteps,
                              entropy: local_increase_ent,
                              goal: local_goal,
+                             actions:local_actions,
                              fake_actions: local_fake_action})
 
         # def value(local_ob, local_goal, local_mask):
