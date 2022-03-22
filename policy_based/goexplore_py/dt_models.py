@@ -129,9 +129,9 @@ def attn(x, n_head, idx, layer_past=None):
     with tf.compat.v1.variable_scope(idx):
         mask = tf.Variable(np.tril(np.ones((T+1, T+1))).reshape((1, 1, T+1, T+1)), trainable=False)
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        k = tf.transpose(tf.reshape(fc(to2d(x), 'key'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
-        q = tf.transpose(tf.reshape(fc(to2d(x), 'value'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
-        v = tf.transpose(tf.reshape(fc(to2d(x), 'query'+idx, nout=C*T, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        k = tf.transpose(tf.reshape(fc(tf.reshape(x, (B*T, C)), 'key'+idx, nout=C, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        q = tf.transpose(tf.reshape(fc(tf.reshape(x, (B*T, C)), 'value'+idx, nout=C, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
+        v = tf.transpose(tf.reshape(fc(tf.reshape(x, (B*T, C)), 'query'+idx, nout=C, init_scale=0.02), (B, T, n_head, C // n_head)), (0, 2, 1, 3)) # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ tf.transpose(k, (0, 1, 3, 2))) * (1.0 / tf.math.sqrt(tf.cast(k.shape.as_list()[-1], dtype=tf.float32)))
@@ -143,7 +143,7 @@ def attn(x, n_head, idx, layer_past=None):
         y = tf.reshape(tf.transpose(y, (0, 2, 1, 3)), (B, T, C)) # re-assemble all head outputs side by side
 
         # output projection
-        y = tf.nn.dropout(fc(to2d(y), 'att_output'+idx, nout=C*T, init_scale=0.02), 0.1)
+        y = tf.nn.dropout(fc(tf.reshape(y, (B*T, C)), 'att_output'+idx, nout=C, init_scale=0.02), 0.1)
         return tf.reshape(y, (B, T, C))
 
 
@@ -157,8 +157,8 @@ def blocks(x, n_head, idx):
         x = x + attn(x1, n_head, idx)
 
         x2 = ln2(x)
-        x2 = gelu(fc(to2d(x2), 'bfc1_'+idx, nout=4*T* C, init_scale=0.02))
-        x2 = tf.nn.dropout(fc(x2, 'bfc2_'+idx, nout=T*C,init_scale=0.02), 0.1)
+        x2 = gelu(fc(tf.reshape(x2, (B*T, C)), 'bfc1_'+idx, nout=4*C, init_scale=0.02))
+        x2 = tf.nn.dropout(fc(x2, 'bfc2_'+idx, nout=C, init_scale=0.02), 0.1)
 
         return x+tf.reshape(x2, (B, T, C))
 
@@ -245,7 +245,7 @@ class GPT(object):
             for i in range(n_layer):
                 x = blocks(x, n_head, str(i))
             x = ln_f(x)
-            logits = tf.reshape(fc(to2d(x), 'head', nout=token_embeddings.shape.as_list()[1]*nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
+            logits = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'head', nout=nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
 
             if actions is not None:
                 logits = logits[:, 1::3, :] # only keep predictions from input_embeddings
