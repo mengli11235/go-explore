@@ -312,6 +312,7 @@ class Model(object):
         self.act_model = None
         self.train_model = None
         self.disable_hvd = None
+        self.logits = None
         
     def init(self, model, ob_space, ac_space, nenv, nsteps, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
         self.sess = tf.compat.v1.get_default_session()
@@ -324,6 +325,7 @@ class Model(object):
 
         # These objects are used to store the experience of all our rollouts.
         self.A = self.train_model.pdtype.sample_placeholder([nenv * nsteps], name='action')
+        self.logits = self.train_model.logits
 
         # Valid allows you to ignore specific time-steps for the purpose of updating the policy
         self.VALID = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valid')
@@ -335,7 +337,7 @@ class Model(object):
         # We ask the model for its entropy
         #self.entropy = tf.math.reduce_mean(self.VALID * self.train_model.pd.entropy())
 
-        self.dt_loss = tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(self.A, logits.shape.as_list()[-1]), tf.reshape(logits, (-1, logits.shape.as_list()[-1])))
+        self.dt_loss = tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(self.A, self.logits.shape.as_list()[-1]), tf.reshape(self.logits, (-1, self.logits.shape.as_list()[-1])))
 
         self.params = tf.compat.v1.trainable_variables()
         # self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
