@@ -108,8 +108,6 @@ class Runner(object):
         self.mb_random_resets.append(np.array([False for _ in range(self.nenv)]))
         logger.info(f'Creating done array of size: {self.nenv}')
         self.mb_dones.append(np.array([False for _ in range(self.nenv)]))
-        logger.info(f'Appending initial state of shape: {self.model.initial_state.shape}')
-        self.mb_states.append(self.model.initial_state)
         logger.info(f'Creating new trajectory ids of size: {self.nenv}')
         self.mb_trajectory_ids.append(np.array([self.get_next_traj_id() for _ in range(self.nenv)]))
         logger.info('init_obs done!')
