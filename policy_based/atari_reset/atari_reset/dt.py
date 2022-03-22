@@ -65,6 +65,7 @@ class Runner(object):
         self.ar_mb_ret_strat = None
         self.trunc_lst_mb_trajectory_ids = None
         self.trunc_lst_mb_dones = None
+        self.trunc_lst_mb_timesteps = None
         self.trunc_lst_mb_rewards = None
         self.trunc_mb_obs = None
         self.trunc_mb_goals = None
@@ -152,12 +153,10 @@ class Runner(object):
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
 
-            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_dones, np.zeros((self.nenv)), self.mb_increase_ent)
+            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_dones, np.zeros((1,1,1)), self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
-            timesteps = np.zeros(self.nenv) + self.steps_taken
-            self.append_mb_data(actions, obs_and_goals, rewards, dones, timesteps, infos)
+            self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.steps_taken)
 
-        # self.mb_timesteps = np.ones(1, self.nenv,1) * self.steps_taken
         # extract arrays
         end = self.nsteps + self.num_steps_to_cut_left
         self.gather_return_info(end)
@@ -167,10 +166,10 @@ class Runner(object):
     def get_entropy(self, infos):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
-    def step_model(self, obs, mb_goals, mb_dones, timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
+    def step_model(self, obs, mb_goals, mb_dones, mb_timesteps, mb_increase_ent):
+        return self.model.step(obs, mb_goals[-1], mb_dones[-1], mb_timesteps, mb_increase_ent[-1])
 
-    def append_mb_data(self, actions, obs_and_goals, rewards, dones, timesteps, infos):
+    def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
         for i in range(len(actions)):
             if overwritten_action[i] >= 0:
@@ -190,9 +189,9 @@ class Runner(object):
         self.mb_goals.append(np.cast[self.model.train_model.goal.dtype.name](goals))
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
+        self.mb_dones.append(dones)
         self.mb_timesteps.append(timesteps)
 
-        self.mb_dones.append(dones)
         self.mb_valids.append([(not info.get('replay_reset.invalid_transition', False)) for info in infos])
         self.mb_random_resets.append(np.array([info.get('replay_reset.random_reset', False) for info in infos]))
         self.mb_exp_strat.append(np.array([info.get('exp_strat', 0) for info in infos]))
@@ -232,6 +231,8 @@ class Runner(object):
         self.trunc_lst_mb_trajectory_ids = sf01(np.asarray(trunc_trajectory_ids, dtype=np.int), 'traj_ids')
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
         self.trunc_lst_mb_dones = sf01(np.asarray(trunc_dones, dtype=np.bool), 'trunc_dones')
+        trunc_timesteps = self.mb_timesteps[-len(self.mb_cells):len(self.mb_timesteps)]
+        self.trunc_lst_mb_timesteps = sf01(np.asarray(trunc_timesteps, dtype=np.int64), 'trunc_dones')
         trunc_rewards = self.mb_rewards[-len(self.mb_cells):len(self.mb_rewards)]
         self.trunc_lst_mb_rewards = sf01(np.asarray(trunc_rewards, dtype=np.float32), 'trunc_rews')
 
