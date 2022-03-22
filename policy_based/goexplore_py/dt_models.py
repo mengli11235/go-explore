@@ -27,6 +27,7 @@ import horovod.tensorflow as hvd
 import sys
 import copy
 import cv2
+from baselines.common.distributions import make_pdtype
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +253,7 @@ class GPT(object):
                 logits = logits[:, 1:, :]
 
 
-        self.pdtype = po.make_pdtype(ac_space)
+        self.pdtype = make_pdtype(ac_space)
         self.pd = self.pdtype.pdfromflat(pi)
         a0 = self.pd.sample()
         logger.info(f'a0.shape: {a0.shape}')
