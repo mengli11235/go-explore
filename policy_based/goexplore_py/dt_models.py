@@ -237,7 +237,7 @@ class GPT(object):
                 # token_embeddings[:,1::2,:] = input_embeddings # really just [:,1,:]
             all_global_pos_emb = tf.repeat(global_pos_emb, nenv, axis=0) # batch_size, traj_length, n_embd
 
-            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(reshape(timesteps, (nenv, nsteps, 1)), n_embed, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
+            position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(tf.reshape(timesteps, (nenv, nsteps, 1)), n_embed, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
             # (batch_size, 1, n_embd) + (1, traj_length, n_embd)
 
             x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
