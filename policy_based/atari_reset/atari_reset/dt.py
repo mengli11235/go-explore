@@ -13,6 +13,14 @@ import cv2
 import logging
 logger = logging.getLogger(__name__)
 
+class ShiftingList(list):
+    def shift(self, nsteps):
+        temp = self[nsteps:]
+        self.clear()
+        self.extend(temp)
+
+    def __eq__(self, other):
+        return id(self) == id(other)
 
 class Runner(object):
     def __init__(self, env, model, nsteps, gamma, lam, norm_adv, subtract_rew_avg):
