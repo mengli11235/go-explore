@@ -177,7 +177,7 @@ class GPT(object):
 
         # use variables instead of placeholder to keep data on GPU if we're training
         nn_input = tf.compat.v1.placeholder(tf.int64, ob_shape, 'input')  # obs
-        actions = tf.compat.v1.placeholder(tf.int64, (nbatch,1), 'actions')  # actions
+        actions = tf.compat.v1.placeholder(tf.int64, (nbatch), 'actions')  # actions
         timesteps = tf.compat.v1.placeholder(tf.int64, (nenv, 1, 1), 'timesteps')  # timesteps
         goal = tf.compat.v1.placeholder(tf.float32, goal_shape, 'goal')  # goal
         mask = tf.compat.v1.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
@@ -223,7 +223,7 @@ class GPT(object):
             goal_embeddings = tf.reshape(goal_embeddings, (nenv, nsteps, n_embed))
 
             if actions is not None: 
-                action_embeddings = tf.math.tanh(action_embed(actions))
+                action_embeddings = tf.math.tanh(action_embed(tf.reshape(actions, (nenv,nsteps))))
                 action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
 
