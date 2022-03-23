@@ -282,7 +282,7 @@ class GPT(object):
         self.M = mask
         self.A = actions
         self.T = timesteps
-        #self.E = entropy
+        self.E = entropy
         self.logits = logits
         # self.vf = vf
         self.step = step
