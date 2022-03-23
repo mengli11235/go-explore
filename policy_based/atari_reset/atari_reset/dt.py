@@ -226,7 +226,7 @@ class Runner(object):
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
         self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
         self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
-        self.ar_mb_timesteps = sf01(np.asarray(self.mb_timesteps[:end]), 'timesteps')
+        self.ar_mb_timesteps = np.asarray(self.mb_timesteps[:end])
         self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
 
         self.ar_mb_cells = sf01(np.asarray(self.mb_cells, dtype=np.object), 'cells')
