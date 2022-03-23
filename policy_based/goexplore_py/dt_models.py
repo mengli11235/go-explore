@@ -399,8 +399,9 @@ class Model(object):
         self.sess.run(restores)
 
     def train_from_runner(self, lr: float, runner: Any):
+        obs = runner.ar_mb_obs_2.reshape(self.train_model.X.shape)
         return self.train(lr,
-                          tf.reshape(runner.ar_mb_obs_2, self.train_model.X.shape),
+                          obs,
                           runner.ar_mb_goals,
                           runner.ar_mb_timesteps,
 
