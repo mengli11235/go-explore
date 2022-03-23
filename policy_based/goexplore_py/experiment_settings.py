@@ -1505,7 +1505,7 @@ def parse_arguments():
     safe_set_argument(args, 'n_digits', DefaultArg(12))
     safe_set_argument(args, 'scale_rewards', DefaultArg(None))
     safe_set_argument(args, 'ignore_negative_rewards', DefaultArg(False))
-    safe_set_argument(args, 'num_steps', DefaultArg(128))
+    safe_set_argument(args, 'num_steps', DefaultArg(64))
 
     safe_set_argument(args, 'vf_coef', DefaultArg(0.5))
     safe_set_argument(args, 'l2_coef', DefaultArg(1e-7))
