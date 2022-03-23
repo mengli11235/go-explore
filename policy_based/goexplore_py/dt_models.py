@@ -411,7 +411,7 @@ class Model(object):
                           runner.ar_mb_ent,)
 
     def train(self, lr, obs, goals, timesteps, masks, actions, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.T: timesteps, self.A: actions, self.train_model.A: actions, self.train_model.E: increase_ent}
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.train_model.E: increase_ent}
         return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
 
 # x = tf.zeros((8,4,2))
