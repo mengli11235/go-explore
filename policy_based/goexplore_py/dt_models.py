@@ -177,7 +177,7 @@ class GPT(object):
 
         # use variables instead of placeholder to keep data on GPU if we're training
         nn_input = tf.compat.v1.placeholder(tf.int64, ob_shape, 'input')  # obs
-        actions = tf.compat.v1.placeholder(tf.int64, (nbatch, 1), 'actions')  # actions
+        actions = tf.compat.v1.placeholder(tf.int64, (nbatch), 'actions')  # actions
         timesteps = tf.compat.v1.placeholder(tf.int64, (nenv, 1, 1), 'timesteps')  # timesteps
         goal = tf.compat.v1.placeholder(tf.float32, goal_shape, 'goal')  # goal
         mask = tf.compat.v1.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
@@ -282,7 +282,7 @@ class GPT(object):
         self.M = mask
         self.A = actions
         self.T = timesteps
-        self.E = entropy
+        #self.E = entropy
         self.logits = logits
         # self.vf = vf
         self.step = step
@@ -411,7 +411,7 @@ class Model(object):
                           runner.ar_mb_ent,)
 
     def train(self, lr, obs, goals, timesteps, masks, actions, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.train_model.E: increase_ent}
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.T: timesteps, self.A: actions, self.train_model.A: actions, self.train_model.E: increase_ent}
         return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
 
 # x = tf.zeros((8,4,2))
