@@ -190,7 +190,7 @@ class Runner(object):
             if overwritten_action[i] >= 0:
                 actions[i] = overwritten_action[i]
 
-        self.mb_actions.append(actions)
+        self.mb_actions.append(actions.squeeze(-1))
         obs, goals = obs_and_goals
 
         if self.first_rollout:
