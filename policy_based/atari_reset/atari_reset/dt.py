@@ -39,7 +39,7 @@ class Runner(object):
         self.num_steps_to_cut_right = 0
         self.local_traj_counter = 0
         self.steps_taken = 0
-        self.timesteps = np.zeros((self.nenv,1,1) 
+        self.timesteps = np.zeros((self.nenv,1,1))
 
         self.to_shift = []
 
@@ -159,17 +159,17 @@ class Runner(object):
         self.mb_traj_len = []
 
         self.steps_taken = 0
-        self.timesteps = np.zeros((self.nenv,1,1) 
+        self.timesteps = np.zeros((self.nenv,1,1))
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones,timesteps), self.mb_increase_ent)
+            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, self.timesteps, self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
-            if dones_i:
-                self.timesteps[i] = 0
-            else:
-                self.timesteps[i] += 1
+                if dones_i:
+                    self.timesteps[i] = 0
+                else:
+                    self.timesteps[i] += 1
 
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
 
