@@ -261,8 +261,9 @@ class Runner(object):
                                               dtype=self.model.train_model.goal.dtype.name), 'trunc_goals')
         self.trunc_mb_actions = sf01(np.asarray(self.mb_actions[end-len(self.mb_cells):end],
                                                 dtype=np.int), 'trunc_acts')
-        self.trunc_timesteps = sf01(np.asarray(self.mb_timesteps[end-len(self.mb_cells):end],
-                                                dtype=np.int), 'trunc_steps')
+        self.trunc_timesteps = np.asarray(self.mb_timesteps[end-len(self.mb_cells):end],
+                                                dtype=np.int)
+
         self.trunc_mb_valids = sf01(np.asarray(self.mb_valids[end-len(self.mb_cells):end],
                                                dtype=np.int), 'trunc_valids')
 
