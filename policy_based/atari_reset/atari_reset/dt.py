@@ -109,7 +109,6 @@ class Runner(object):
         logger.info(f'Creating done array of size: {self.nenv}')
         self.mb_dones.append(np.array([False for _ in range(self.nenv)]))
         logger.info(f'Creating new trajectory ids of size: {self.nenv}')
-        nenv}')
         self.mb_actions.append(np.array([0 for _ in range(self.nenv)]))
         self.mb_trajectory_ids.append(np.array([self.get_next_traj_id() for _ in range(self.nenv)]))
         logger.info('init_obs done!')
