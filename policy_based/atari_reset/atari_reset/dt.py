@@ -57,7 +57,6 @@ class Runner(object):
         self.mb_rewards = self.reg_shift_list()
         self.mb_reward_avg = self.reg_shift_list()
         self.mb_actions = self.reg_shift_list()
-        self.mb_timesteps = self.reg_shift_list()
 
         self.mb_valids = self.reg_shift_list()
         self.mb_random_resets = self.reg_shift_list()
@@ -206,7 +205,6 @@ class Runner(object):
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
         self.mb_dones.append(dones)
-        self.mb_timesteps.append(timesteps)
 
         self.mb_valids.append([(not info.get('replay_reset.invalid_transition', False)) for info in infos])
         self.mb_random_resets.append(np.array([info.get('replay_reset.random_reset', False) for info in infos]))
@@ -235,7 +233,7 @@ class Runner(object):
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
         self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
         self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
-        self.ar_mb_timesteps = sf01(np.asarray(self.mb_timesteps[:end]), 'timesteps')
+        self.ar_mb_timesteps = np.asarray(self.timesteps)
         self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
 
         self.ar_mb_cells = sf01(np.asarray(self.mb_cells, dtype=np.object), 'cells')
@@ -247,8 +245,8 @@ class Runner(object):
         self.trunc_lst_mb_trajectory_ids = sf01(np.asarray(trunc_trajectory_ids, dtype=np.int), 'traj_ids')
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
         self.trunc_lst_mb_dones = sf01(np.asarray(trunc_dones, dtype=np.bool), 'trunc_dones')
-        trunc_timesteps = self.mb_timesteps[-len(self.mb_cells):len(self.mb_timesteps)]
-        self.trunc_lst_mb_timesteps = sf01(np.asarray(trunc_timesteps, dtype=np.int64), 'trunc_timesteps')
+        trunc_timesteps = self.timesteps
+        self.trunc_lst_mb_timesteps = np.asarray(trunc_timesteps, dtype=np.int64)
         trunc_rewards = self.mb_rewards[-len(self.mb_cells):len(self.mb_rewards)]
         self.trunc_lst_mb_rewards = sf01(np.asarray(trunc_rewards, dtype=np.float32), 'trunc_rews')
 
