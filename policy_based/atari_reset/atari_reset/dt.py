@@ -160,7 +160,7 @@ class Runner(object):
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
 
-            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
+            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.steps_taken)
 
