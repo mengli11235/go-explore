@@ -239,7 +239,7 @@ class Runner(object):
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
         self.trunc_lst_mb_dones = sf01(np.asarray(trunc_dones, dtype=np.bool), 'trunc_dones')
         trunc_timesteps = self.mb_timesteps[-len(self.mb_cells):len(self.mb_timesteps)]
-        self.trunc_lst_mb_timesteps = sf01(np.asarray(trunc_timesteps, dtype=np.int64), 'trunc_dones')
+        self.trunc_lst_mb_timesteps = np.asarray(trunc_timesteps, dtype=np.int64)
         trunc_rewards = self.mb_rewards[-len(self.mb_cells):len(self.mb_rewards)]
         self.trunc_lst_mb_rewards = sf01(np.asarray(trunc_rewards, dtype=np.float32), 'trunc_rews')
 
