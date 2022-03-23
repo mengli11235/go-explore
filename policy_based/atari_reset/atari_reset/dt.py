@@ -109,6 +109,8 @@ class Runner(object):
         logger.info(f'Creating done array of size: {self.nenv}')
         self.mb_dones.append(np.array([False for _ in range(self.nenv)]))
         logger.info(f'Creating new trajectory ids of size: {self.nenv}')
+        nenv}')
+        self.mb_actions.append(np.array([0 for _ in range(self.nenv)]))
         self.mb_trajectory_ids.append(np.array([self.get_next_traj_id() for _ in range(self.nenv)]))
         logger.info('init_obs done!')
 
@@ -159,7 +161,7 @@ class Runner(object):
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
 
-            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, None, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
+            actions, values, states, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.steps_taken)
 
