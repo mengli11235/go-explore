@@ -39,6 +39,8 @@ class Runner(object):
         self.num_steps_to_cut_right = 0
         self.local_traj_counter = 0
         self.steps_taken = 0
+        self.timesteps = np.zeros((self.nenv,1,1) 
+
         self.to_shift = []
 
         # Per episode information
@@ -157,12 +159,19 @@ class Runner(object):
         self.mb_traj_len = []
 
         self.steps_taken = 0
+        self.timesteps = np.zeros((self.nenv,1,1) 
+
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-
-            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, np.zeros((self.nenv,1,1)), self.mb_increase_ent)
+            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones,timesteps), self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
-            self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.steps_taken)
+            for i, dones_i in enumerate(dones):
+            if dones_i:
+                self.timesteps[i] = 0
+            else:
+                self.timesteps[i] += 1
+
+            self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
 
         # extract arrays
         end = self.nsteps + self.num_steps_to_cut_left
@@ -173,8 +182,8 @@ class Runner(object):
     def get_entropy(self, infos):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
-    def step_model(self, obs, mb_goals, mb_actions, mb_dones, mb_timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals[-1], mb_actions[-1], mb_dones[-1], mb_timesteps, mb_increase_ent[-1])
+    def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
+        return self.model.step(obs, mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
@@ -226,7 +235,7 @@ class Runner(object):
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
         self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
         self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
-        self.ar_mb_timesteps = np.asarray(self.mb_timesteps[:end])
+        self.ar_mb_timesteps = sf01(np.asarray(self.mb_timesteps[:end]), 'timesteps')
         self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
 
         self.ar_mb_cells = sf01(np.asarray(self.mb_cells, dtype=np.object), 'cells')
@@ -239,7 +248,7 @@ class Runner(object):
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
         self.trunc_lst_mb_dones = sf01(np.asarray(trunc_dones, dtype=np.bool), 'trunc_dones')
         trunc_timesteps = self.mb_timesteps[-len(self.mb_cells):len(self.mb_timesteps)]
-        self.trunc_lst_mb_timesteps = np.asarray(trunc_timesteps, dtype=np.int64)
+        self.trunc_lst_mb_timesteps = sf01(np.asarray(trunc_timesteps, dtype=np.int64), 'trunc_timesteps')
         trunc_rewards = self.mb_rewards[-len(self.mb_cells):len(self.mb_rewards)]
         self.trunc_lst_mb_rewards = sf01(np.asarray(trunc_rewards, dtype=np.float32), 'trunc_rews')
 
@@ -261,8 +270,6 @@ class Runner(object):
                                               dtype=self.model.train_model.goal.dtype.name), 'trunc_goals')
         self.trunc_mb_actions = sf01(np.asarray(self.mb_actions[end-len(self.mb_cells):end],
                                                 dtype=np.int), 'trunc_acts')
-        self.trunc_timesteps = np.asarray(self.mb_timesteps[end-len(self.mb_cells):end],
-                                                dtype=np.int)
 
         self.trunc_mb_valids = sf01(np.asarray(self.mb_valids[end-len(self.mb_cells):end],
                                                dtype=np.int), 'trunc_valids')
