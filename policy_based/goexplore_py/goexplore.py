@@ -169,7 +169,7 @@ class Explore:
         self.archive.cell_trajectory_manager.write_low_prob_traj_to_disk(traj_id)
 
     def sync_before_checkpoint(self):
-        if self.sil == 'sil' or self.sil == 'replay':
+        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'dt':
             # Let everyone in the world know who has which full trajectory
             owned_by_world = self.get_traj_owners(self.archive.cell_trajectory_manager.cell_trajectories)
 
@@ -220,7 +220,7 @@ class Explore:
         trajectory_manager = self.archive.cell_trajectory_manager
         trajectory_manager.traj_prob_dict = cell_selector.get_traj_probabilities_dict(self.archive.archive)
 
-        if self.sil == 'sil' or self.sil == 'replay':
+        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'dt':
             traj_candidates = []
 
             # Select a trajectory to imitate based on the current cell-selection procedure

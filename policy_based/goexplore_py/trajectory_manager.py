@@ -316,7 +316,7 @@ class CellTrajectoryManager:
         trajectory_fragment.exp_new_cells = trajectory.exp_new_cells
         trajectory_fragment.ret_new_cells = trajectory.ret_new_cells
 
-        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'nosil':
+        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'nosil' or self.sil == 'dt':
             if self.cell_trajectory_id not in self.full_trajectories:
                 self.set_full_trajectory(self.cell_trajectory_id)
             self.full_trajectories[self.cell_trajectory_id].append((cell_key, reward, (obs, goal), action, ge_reward))
