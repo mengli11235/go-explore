@@ -163,7 +163,7 @@ class Runner(object):
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits = self.step_model(self.ar_mb_obs_2.reshape(self.train_model.X.shape), self.ar_mb_goals, self.ar_mb_actions, self.ar_mb_dones, self.timesteps, self.ar_mb_ent)
+            actions, logits = self.step_model(self.ar_mb_obs_2.reshape(self.model.train_model.X.shape), self.ar_mb_goals, self.ar_mb_actions, self.ar_mb_dones, self.timesteps, self.ar_mb_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
