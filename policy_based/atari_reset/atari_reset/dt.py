@@ -159,11 +159,10 @@ class Runner(object):
 
         self.steps_taken = 0
         self.timesteps = np.zeros((self.nenv,1,1))
-        end = self.nsteps + self.num_steps_to_cut_left
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits = self.step_model(self.ar_mb_obs_2.reshape(self.model.train_model.X.shape), self.ar_mb_goals, self.ar_mb_actions, self.ar_mb_dones, self.timesteps, self.ar_mb_ent)
+            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, self.timesteps, self.mb_increase_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
@@ -172,8 +171,10 @@ class Runner(object):
                     self.timesteps[i] += 1
 
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
-            # extract arrays
-            self.gather_return_info(end)
+
+        # extract arrays
+        end = self.nsteps + self.num_steps_to_cut_left
+        self.gather_return_info(end)
 
         self.first_rollout = False
 
@@ -181,7 +182,7 @@ class Runner(object):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent)
+        return self.model.step(obs, mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
@@ -199,6 +200,7 @@ class Runner(object):
         if write_index < self.ar_mb_obs_2.shape[1]:
             self.ar_mb_obs_2[:, write_index, ...] = np.cast[self.model.train_model.X.dtype.name](obs)
         self.obs_final = np.cast[self.model.train_model.X.dtype.name](obs)
+
         self.mb_goals.append(np.cast[self.model.train_model.goal.dtype.name](goals))
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
