@@ -346,7 +346,7 @@ class Model(object):
 
     def init_models(self, model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space):
         # At test time, we only need the most recent action in order to take a step.
-        self.act_model = model(self.sess, ob_space, ac_space, nenv, 1, test_mode=test_mode, reuse=False, goal_space=goal_space)
+        self.act_model = model(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=False, goal_space=goal_space)
         # At training time, we need to keep track of the last T (nsteps) of actions that we took.
         self.train_model = model(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=True, goal_space=goal_space)
 

@@ -53,6 +53,8 @@ class Runner(object):
 
         self.single_frame_obs_space = env.recursive_getattr('single_frame_obs_space')
         self.mb_goals = self.reg_shift_list()
+        self.mb_obs = self.reg_shift_list()
+
         self.mb_increase_ent = self.reg_shift_list()
         self.mb_rewards = self.reg_shift_list()
         self.mb_reward_avg = self.reg_shift_list()
@@ -69,6 +71,8 @@ class Runner(object):
         self.ar_mb_actions = None
         self.ar_mb_timesteps = None
         self.ar_mb_dones = None
+        self.ar_mb_obs = None
+
         self.ar_mb_cells = None
         self.ar_mb_game_reward = None
         self.ar_mb_ret_strat = None
@@ -92,6 +96,7 @@ class Runner(object):
         self.traj_id_limit = None
 
     def init_obs(self):
+        end = self.nsteps + self.num_steps_to_cut_left
         logger.info('Resetting environments...')
         obs_and_goals = self.env.reset()
         obs, goals = obs_and_goals
@@ -102,16 +107,21 @@ class Runner(object):
         self.ar_mb_obs_2[:, 0, ...] = self.obs_final
 
         logger.info('Casting the goal...')
-        self.mb_goals.append(np.cast[self.model.train_model.goal.dtype.name](goals))
+        self.mb_goals += [np.cast[self.model.train_model.goal.dtype.name](goals)] * end
+        self.mb_obs += [self.obs_final] * end
         logger.info(f'Creating entropy array of size: {self.nenv}')
-        self.mb_increase_ent.append(np.ones(self.nenv, dtype=np.float32))
+    
+        self.mb_rewards += [np.zeros(self.nenv, dtype=np.float32).reshape((self.nenv))] * end
+        self.mb_reward_avg += [np.zeros(self.nenv, dtype=np.float32).reshape((self.nenv))] * end
+        self.mb_valids += [np.array([False for _ in range(self.nenv)])] * end
+        self.mb_increase_ent += [np.ones(self.nenv, dtype=np.float32)] * end
         logger.info(f'Creating random-reset array of size: {self.nenv}')
-        self.mb_random_resets.append(np.array([False for _ in range(self.nenv)]))
+        self.mb_random_resets += [np.array([False for _ in range(self.nenv)])] * end
         logger.info(f'Creating done array of size: {self.nenv}')
-        self.mb_dones.append(np.array([False for _ in range(self.nenv)]))
+        self.mb_dones += [np.array([False for _ in range(self.nenv)])] * end
         logger.info(f'Creating new trajectory ids of size: {self.nenv}')
-        self.mb_actions.append(np.zeros(self.nenv, dtype=np.int64).reshape((self.nenv)))
-        self.mb_trajectory_ids.append(np.array([self.get_next_traj_id() for _ in range(self.nenv)]))
+        self.mb_actions += [np.zeros(self.nenv, dtype=np.int64).reshape((self.nenv))] * end
+        self.mb_trajectory_ids += [np.array([self.get_next_traj_id() for _ in range(self.nenv)])] * end
         logger.info('init_obs done!')
 
     def get_next_traj_id(self):
@@ -140,9 +150,6 @@ class Runner(object):
 
     def run(self):
         # shift forward
-        if len(self.mb_rewards) >= self.nsteps + self.num_steps_to_cut_left + self.num_steps_to_cut_right:
-            for shifting_list in self.to_shift:
-                shifting_list.shift(self.nsteps)
 
         if not self.first_rollout:
             for i in range(self.num_steps_to_cut_left):
@@ -160,9 +167,9 @@ class Runner(object):
         self.steps_taken = 0
         self.timesteps = np.zeros((self.nenv,1,1))
 
-        while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
+        while self.steps_taken < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, self.timesteps, self.mb_increase_ent)
+            actions, logits = self.step_model(self.ar_mb_obs, self.ar_mb_goals, self.ar_mb_actions, self.ar_mb_dones, self.timesteps, self.ar_mb_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
@@ -170,10 +177,12 @@ class Runner(object):
                 else:
                     self.timesteps[i] += 1
 
+            for shifting_list in self.to_shift:
+                shifting_list.shift(1)
+            
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
 
         # extract arrays
-        end = self.nsteps + self.num_steps_to_cut_left
         self.gather_return_info(end)
 
         self.first_rollout = False
@@ -182,7 +191,7 @@ class Runner(object):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-        return self.model.step(obs, mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
+        return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent)
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
@@ -202,6 +211,7 @@ class Runner(object):
         self.obs_final = np.cast[self.model.train_model.X.dtype.name](obs)
 
         self.mb_goals.append(np.cast[self.model.train_model.goal.dtype.name](goals))
+        self.mb_obs.append(np.cast[self.model.train_model.X.dtype.name](obs))
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
         self.mb_dones.append(dones)
@@ -227,15 +237,18 @@ class Runner(object):
                         continue
                 self.epinfos.append(maybeepinfo)
 
-    def gather_return_info(self, end):
-        from baselines.common.mpi_moments import mpi_moments
         self.ar_mb_goals = sf01(np.asarray(self.mb_goals[:end], dtype=self.model.train_model.goal.dtype.name), 'goals')
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
         self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
         self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
-        self.ar_mb_timesteps = np.asarray(self.timesteps)
         self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
+    
+        self.ar_mb_obs = sf01(np.asarray(self.mb_obs[:end], dtype=self.model.train_model.X.dtype.name), 'obs')
 
+    def gather_return_info(self, end):
+        from baselines.common.mpi_moments import mpi_moments
+
+        self.ar_mb_timesteps = np.asarray(self.timesteps)
         self.ar_mb_cells = sf01(np.asarray(self.mb_cells, dtype=np.object), 'cells')
         self.ar_mb_ret_strat = sf01(np.asarray(self.mb_exp_strat, dtype=np.int32), 'ret_strats')
 
