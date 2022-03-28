@@ -122,6 +122,15 @@ class Runner(object):
         logger.info(f'Creating new trajectory ids of size: {self.nenv}')
         self.mb_actions += [np.zeros(self.nenv, dtype=np.int64).reshape((self.nenv))] * end
         self.mb_trajectory_ids += [np.array([self.get_next_traj_id() for _ in range(self.nenv)])] * end
+
+        self.ar_mb_goals = sf01(np.asarray(self.mb_goals[:end], dtype=self.model.train_model.goal.dtype.name), 'goals')
+        self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
+        self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
+        self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
+        self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
+    
+        self.ar_mb_obs = sf01(np.asarray(self.mb_obs[:end], dtype=self.model.train_model.X.dtype.name), 'obs')
+
         logger.info('init_obs done!')
 
     def get_next_traj_id(self):
@@ -236,6 +245,7 @@ class Runner(object):
                     if self.mb_trajectory_ids[-2][i] >= self.traj_id_limit:
                         continue
                 self.epinfos.append(maybeepinfo)
+        end = self.nsteps + self.num_steps_to_cut_left
 
         self.ar_mb_goals = sf01(np.asarray(self.mb_goals[:end], dtype=self.model.train_model.goal.dtype.name), 'goals')
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
