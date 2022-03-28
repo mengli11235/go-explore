@@ -190,7 +190,8 @@ class Runner(object):
                 shifting_list.shift(1)
             
             self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
-
+        
+        end = self.nsteps + self.num_steps_to_cut_left
         # extract arrays
         self.gather_return_info(end)
 
