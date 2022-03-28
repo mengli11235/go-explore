@@ -44,12 +44,12 @@ class Runner(object):
         self.to_shift = []
 
         # Per episode information
-        self.epinfos = []
-        self.mb_cells = []
-        self.mb_game_reward = []
-        self.mb_exp_strat = []
-        self.mb_traj_index = []
-        self.mb_traj_len = []
+        self.epinfos = self.reg_shift_list()
+        self.mb_cells = self.reg_shift_list()
+        self.mb_game_reward = self.reg_shift_list()
+        self.mb_exp_strat = self.reg_shift_list()
+        self.mb_traj_index = self.reg_shift_list()
+        self.mb_traj_len = self.reg_shift_list()
 
         self.single_frame_obs_space = env.recursive_getattr('single_frame_obs_space')
         self.mb_goals = self.reg_shift_list()
@@ -132,6 +132,14 @@ class Runner(object):
         self.ar_mb_obs = sf01(np.asarray(self.mb_obs[:end], dtype=self.model.train_model.X.dtype.name), 'obs')
 
         logger.info('init_obs done!')
+
+
+        self.epinfos += [np.zeros(self.nenv, dtype=np.object).reshape((self.nenv))] * end
+        self.mb_cells += [np.zeros(self.nenv, dtype=np.object).reshape((self.nenv))] * end
+        self.mb_game_reward += [np.zeros(self.nenv, dtype=np.float32).reshape((self.nenv))] * end
+        self.mb_exp_strat += [np.zeros(self.nenv, dtype=np.float32).reshape((self.nenv))] * end
+        self.mb_traj_index += [np.zeros(self.nenv, dtype=np.int64).reshape((self.nenv))] * end
+        self.mb_traj_len += [np.zeros(self.nenv, dtype=np.int64).reshape((self.nenv))] * end
 
     def get_next_traj_id(self):
         result = self.local_traj_counter + hvd.rank() * (sys.maxsize // hvd.size())
