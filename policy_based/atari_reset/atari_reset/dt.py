@@ -65,13 +65,13 @@ class Runner(object):
 
         self.sq_obs =  np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 80, 105, 12], dtype=self.model.train_model.X.dtype.name)
 
-        self.sq_dones = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.mask.dtype.name)
+        self.sq_dones = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
 
         self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 307], dtype=self.model.train_model.goal.dtype.name)
 
         self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.actions.dtype.name)
 
-        self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.entropy.dtype.name)
+        self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
         
         self.ar_mb_goals = None
         self.ar_mb_ent = None
@@ -195,7 +195,7 @@ class Runner(object):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-        return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.actions.shape), mb_dones.reshape(self.model.train_model.mask.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.entropy.shape))
+        return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
     def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
@@ -213,13 +213,13 @@ class Runner(object):
         self.sq_goals[:, -1, ...] = np.cast[self.model.train_model.goal.dtype.name](goals)
 
         self.sq_dones[:, :-1, ...] = self.sq_dones[:, 1:, ...] 
-        self.sq_dones[:, -1, ...] = np.cast[self.model.train_model.mask.dtype.name](dones)
+        self.sq_dones[:, -1, ...] = np.cast[self.model.train_model.M.dtype.name](dones)
 
         self.sq_actions[:, :-1, ...] = self.sq_actions[:, 1:, ...] 
         self.sq_actions[:, -1, ...] = np.cast[self.model.train_model.actions.dtype.name](actions)
 
         self.sq_ent[:, :-1, ...] = self.sq_ent[:, 1:, ...] 
-        self.sq_ent[:, -1, ...] = np.cast[self.model.train_model.entropy.dtype.name](self.get_entropy(infos))
+        self.sq_ent[:, -1, ...] = np.cast[self.model.train_model.E.dtype.name](self.get_entropy(infos))
 
         if self.first_rollout:
             write_index = self.steps_taken
