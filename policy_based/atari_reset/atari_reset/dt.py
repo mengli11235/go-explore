@@ -69,7 +69,7 @@ class Runner(object):
 
         self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 307], dtype=self.model.train_model.goal.dtype.name)
 
-        self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.actions.dtype.name)
+        self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.A.dtype.name)
 
         self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
         
@@ -216,7 +216,7 @@ class Runner(object):
         self.sq_dones[:, -1, ...] = np.cast[self.model.train_model.M.dtype.name](dones)
 
         self.sq_actions[:, :-1, ...] = self.sq_actions[:, 1:, ...] 
-        self.sq_actions[:, -1, ...] = np.cast[self.model.train_model.actions.dtype.name](actions)
+        self.sq_actions[:, -1, ...] = np.cast[self.model.train_model.A.dtype.name](actions)
 
         self.sq_ent[:, :-1, ...] = self.sq_ent[:, 1:, ...] 
         self.sq_ent[:, -1, ...] = np.cast[self.model.train_model.E.dtype.name](self.get_entropy(infos))
