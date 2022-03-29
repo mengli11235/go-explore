@@ -180,7 +180,7 @@ class GPT(object):
         actions = tf.compat.v1.placeholder(tf.int64, (nbatch), 'actions')  # actions
         timesteps = tf.compat.v1.placeholder(tf.int64, (nenv, 1, 1), 'timesteps')  # timesteps
         goal = tf.compat.v1.placeholder(tf.float32, goal_shape, 'goal')  # goal
-        mask = tf.compat.v1.placeholder(tf.float32, [nbatch], 'done_mask')  # mask (done t-1)
+        mask = tf.compat.v1.placeholder(tf.int64, [nbatch], 'done_mask')  # mask (done t-1)
         entropy = tf.compat.v1.placeholder(tf.float32, [nbatch], 'entropy_factor')
         fake_actions = tf.compat.v1.placeholder(tf.int64, [nbatch], 'fake_actions')
         logger.info(f'fake_actions.shape: {fake_actions.shape}')
@@ -346,7 +346,7 @@ class Model(object):
 
     def init_models(self, model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space):
         # At test time, we only need the most recent action in order to take a step.
-        self.act_model = model(self.sess, ob_space, ac_space, nenv, 1, test_mode=test_mode, reuse=False, goal_space=goal_space)
+        self.act_model = model(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=False, goal_space=goal_space)
         # At training time, we need to keep track of the last T (nsteps) of actions that we took.
         self.train_model = model(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=True, goal_space=goal_space)
 
