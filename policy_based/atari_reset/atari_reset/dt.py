@@ -67,7 +67,7 @@ class Runner(object):
 
         self.sq_dones = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
 
-        self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 307], dtype=self.model.train_model.goal.dtype.name)
+        self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, self.model.train_model.goal.shape.as_list()[-1]], dtype=self.model.train_model.goal.dtype.name)
 
         self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.A.dtype.name)
 
