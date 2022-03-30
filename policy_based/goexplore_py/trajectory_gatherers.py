@@ -124,7 +124,7 @@ class StochasticGatherer:
         self.runner.init_obs()
 
     def _train(self):
-        lr_mult = max(0.001, 100/(self.nb_of_episodes+100))
+        lr_mult = 1 #max(0.001, 100/(self.nb_of_episodes+100))
 
         self.loss_values = []
         for i in range(self.nb_of_epochs):
