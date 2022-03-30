@@ -342,7 +342,7 @@ class Model(object):
         # We ask the model for its entropy
         self.entropy = tf.math.reduce_mean(self.train_model.pd.entropy())
 
-        self.dt_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(tf.stop_gradient(self.A), self.logits.shape.as_list()[-1]), tf.reshape(self.logits, (-1, self.logits.shape.as_list()[-1])))) + #0.5*self.entropy 
+        self.dt_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(tf.stop_gradient(self.A), self.logits.shape.as_list()[-1]), tf.reshape(self.logits, (-1, self.logits.shape.as_list()[-1])))) #+ 0.5*self.entropy 
 
         self.params = tf.compat.v1.trainable_variables()
         # self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
