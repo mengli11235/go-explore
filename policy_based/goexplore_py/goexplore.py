@@ -217,11 +217,11 @@ class Explore:
                             self.trajectory_gatherer.ent_incs)
 
         self._sync_info()
-        nb_cells = len(self.archive.archive)
-        if not self.warm_up:
-            if self.nb_cells != nb_cells:
-                self.nb_cells = nb_cells
-                self.trajectory_gatherer._train()
+        # nb_cells = len(self.archive.archive)
+        # if not self.warm_up:
+        #     if self.nb_cells != nb_cells:
+        #         self.nb_cells = nb_cells
+        #         self.trajectory_gatherer._train()
 
         cell_selector = self.archive.cell_selector
         trajectory_manager = self.archive.cell_trajectory_manager
