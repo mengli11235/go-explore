@@ -58,6 +58,7 @@ class Explore:
         self.max_traj_candidates: int = max_traj_candidates
         self.exchange_sil_traj: str = exchange_sil_traj
         self.warm_up: bool = False
+        self.nb_cells = 0
 
     def close(self):
         self.trajectory_gatherer.close()
@@ -126,7 +127,7 @@ class Explore:
     def start_warm_up(self):
         self.warm_up = True
         self.trajectory_gatherer.warm_up = True
-
+        
     def end_warm_up(self):
         self.warm_up = False
         self.trajectory_gatherer.warm_up = False
@@ -216,6 +217,12 @@ class Explore:
                             self.trajectory_gatherer.ent_incs)
 
         self._sync_info()
+        nb_cells = len(self.archive.archive)
+        if not self.warm_up:
+            if self.nb_cells != nb_cells:
+                self.nb_cells = nb_cells
+                self.trajectory_gatherer._train()
+
         cell_selector = self.archive.cell_selector
         trajectory_manager = self.archive.cell_trajectory_manager
         trajectory_manager.traj_prob_dict = cell_selector.get_traj_probabilities_dict(self.archive.archive)

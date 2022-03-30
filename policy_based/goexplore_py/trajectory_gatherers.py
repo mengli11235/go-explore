@@ -95,8 +95,8 @@ class StochasticGatherer:
         self.ent_incs = [ei['inc_ent'] for ei in local_ep_infos]
 
         # We do not update the network during the warm up period
-        if not self.freeze_network and not self.warm_up:
-            self._train()
+        # if not self.freeze_network and not self.warm_up:
+        #     self._train()
 
         return (self.runner.ar_mb_cells,
                 self.runner.ar_mb_game_reward,
