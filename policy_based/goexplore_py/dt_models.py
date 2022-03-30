@@ -252,10 +252,10 @@ class GPT(object):
             else:
                 logits = logits[:, 1:, :]
 
-            # if test_mode:
-            #     logits *= 2.
-            # else:
-            #     logits /= tf.reshape(entropy, (nenv, nsteps, 1))
+            if test_mode:
+                logits *= 2.
+            else:
+                logits /= tf.reshape(entropy, (nenv, nsteps, 1))
     
         self.pdtype = make_pdtype(ac_space)
         self.pd = self.pdtype.pdfromflat(logits[:, -1, :])
