@@ -124,11 +124,9 @@ class StochasticGatherer:
         self.runner.init_obs()
 
     def _train(self):
-        lr_mult = max(0.001, 100/(self.nb_of_episodes+100))
-
         self.loss_values = []
         for i in range(self.nb_of_epochs):
-            self.loss_values.append(self.model.train_from_runner(self.learning_rate * lr_mult, self.runner))
+            self.loss_values.append(self.model.train_from_runner(self.learning_rate, self.runner))
 
     def save_model(self, filename):
         self.model.save(filename)
