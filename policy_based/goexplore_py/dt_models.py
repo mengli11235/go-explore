@@ -246,30 +246,35 @@ class GPT(object):
                 x = blocks(x, n_head, str(i))
             x = ln_f(x)
             logits = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'head', nout=nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
-
+            vf_before_squeeze = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'v', nout=1, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], 1))
             if actions is not None:
                 logits = logits[:, 1::3, :] # only keep predictions from input_embeddings
+                vf_before_squeeze = vf_before_squeeze[:, 1::3, :]
             else:
                 logits = logits[:, 1:, :]
+                vf_before_squeeze = vf_before_squeeze[:, 1:, :]
 
             if test_mode:
                 logits *= 2.
             else:
                 logits /= tf.reshape(entropy, (nenv, nsteps, 1))
-    
+            vf = tf.squeeze(vf_before_squeeze[:, -1, :], axis=[1])
+
         self.pdtype = make_pdtype(ac_space)
         self.pd = self.pdtype.pdfromflat(logits[:, -1, :])
+
         a0 = self.pd.sample()
+        neglogp0 = self.pd.neglogp(a0)
         logger.info(f'a0.shape: {a0.shape}')
         logger.info(f'a0.dtype: {a0.dtype}')
 
         def step(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent):
-            return sess.run([a0, logits],
+            return sess.run([a0, logits, neglogp0],
                             {nn_input: local_ob, mask: local_mask, timesteps: local_timesteps, entropy: local_increase_ent,
                              goal: local_goal, actions:local_actions})
 
         def step_fake_action(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent, local_fake_action):
-            return sess.run([a0, logits],
+            return sess.run([a0, logits, neglogp0, neg_log_fake_a],
                             {nn_input: local_ob,
                              mask: local_mask,
                              timesteps: local_timesteps,
@@ -278,8 +283,8 @@ class GPT(object):
                              actions:local_actions,
                              fake_actions: local_fake_action})
 
-        # def value(local_ob, local_goal, local_mask):
-        #     return sess.run(vf, {nn_input: local_ob, mask: local_mask, goal: local_goal})
+        def value(local_ob, local_goal, local_mask):
+            return sess.run(vf, {nn_input: local_ob, mask: local_mask, goal: local_goal})
 
         self.X = nn_input
         self.goal = goal
@@ -288,10 +293,10 @@ class GPT(object):
         self.T = timesteps
         self.E = entropy
         self.logits = logits
-        # self.vf = vf
+        self.vf = vf
         self.step = step
         self.step_fake_action = step_fake_action
-        #self.value = value
+        self.value = value
         self.block_size = nsteps
 
     def get_block_size(self):
@@ -323,30 +328,61 @@ class Model(object):
         self.sess = tf.compat.v1.get_default_session()
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, disable_hvd)
-        self.loss = self.dt_loss
+        #self.loss = self.dt_loss
+        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss
+
         self.finalize(load_path, adam_epsilon)
 
     def init_loss(self, nenv, nsteps, disable_hvd):
 
         # These objects are used to store the experience of all our rollouts.
         self.A = self.train_model.pdtype.sample_placeholder([nenv * nsteps], name='action')
+        self.ADV = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='advantage')
+
         self.logits = self.train_model.logits
 
         # Valid allows you to ignore specific time-steps for the purpose of updating the policy
         self.VALID = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valid')
         self.R = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='return')
 
+        # The old negative log probability of each action (i.e. -log(pi_old(a_t|s_t)) )
+        self.OLDNEGLOGPAC = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='neglogprob')
+
         # This is just the learning rate
         self.LR = tf.compat.v1.placeholder(tf.float32, [], name='lr')
+
+        # We ask the model for its value prediction
+        self.vpred = self.train_model.vf
+
+        # We ask the model for the negative log probability for each action, but given which state?
+        neglogpac = self.train_model.pd.neglogp(self.A)
 
         # We ask the model for its entropy
         self.entropy = tf.math.reduce_mean(self.train_model.pd.entropy())
 
-        #self.dt_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(tf.stop_gradient(self.A), self.logits.shape.as_list()[-1]), tf.reshape(self.logits, (-1, self.logits.shape.as_list()[-1]))))
-        self.dt_loss = -0.5*self.entropy 
+        self.dt_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(tf.stop_gradient(self.A), self.logits.shape.as_list()[-1]), tf.reshape(self.logits, (-1, self.logits.shape.as_list()[-1]))))
+        #0.5*self.entropy 
 
+        # The clipped value prediction, which is just vpred if the difference between vpred and OLDVPRED is smaller
+        # than the clip range.
+        vpredclipped = self.OLDVPRED + tf.clip_by_value(self.vpred - self.OLDVPRED, -0.1, 0.1)
+        vf_losses1 = tf.math.square(self.vpred - self.R)
+        vf_losses2 = tf.math.square(vpredclipped - self.R)
+        self.vf_loss = .5 * tf.math.reduce_mean(self.VALID * tf.math.maximum(vf_losses1, vf_losses2))
+
+        # This is pi_current(a_t|s_t) / pi_old(a_t|s_t)
+        ratio = tf.math.exp(self.OLDNEGLOGPAC - neglogpac)
+        pg_losses = -self.ADV * ratio
+        pg_losses2 = -self.ADV * tf.clip_by_value(ratio, 1.0 - 0.1, 1.0 + 0.1)
+        self.pg_loss = tf.math.reduce_mean(self.VALID * tf.math.maximum(pg_losses, pg_losses2))
+        mv = tf.math.reduce_mean(self.VALID)
+
+        # This is the KL divergence (approximated) between the old and the new policy
+        # (i.e. KL(pi_current(a_t|s_t), pi_old(a_t|s_t))
+        self.approxkl = .5 * tf.math.reduce_mean(self.VALID * tf.math.square(neglogpac - self.OLDNEGLOGPAC)) / mv
+        self.clipfrac = tf.math.reduce_mean(self.VALID * tf.compat.v1.to_float(tf.math.greater(tf.math.abs(ratio - 1.0), 0.1))) / mv
         self.params = tf.compat.v1.trainable_variables()
-        # self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
+        self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
         self.disable_hvd = disable_hvd
 
     def init_models(self, model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space):
@@ -370,7 +406,13 @@ class Model(object):
             self.sess.run(hvd.broadcast_global_variables(0))
         tf.compat.v1.get_default_graph().finalize()
 
-        self.loss_requested_dict = {self.dt_loss: 'transformer_loss', self.train_op: ''}
+        self.loss_requested_dict = {self.dt_loss: 'transformer_loss', self.pg_loss: 'policy_loss',
+                                    self.vf_loss: 'value_loss',
+                                    self.l2_loss: 'l2_loss',
+                                    self.entropy: 'policy_entropy',
+                                    self.approxkl: 'approxkl',
+                                    self.clipfrac: 'clipfrac',
+                                    self.train_op: ''}
         self.init_requested_loss()
 
     def init_requested_loss(self):
@@ -409,14 +451,17 @@ class Model(object):
                           obs,
                           runner.ar_mb_goals,
                           runner.ar_mb_timesteps,
-
+                          runner.ar_mb_rets,
+                          runner.ar_mb_advs,
                           runner.ar_mb_dones,
                           runner.ar_mb_actions,
+                          runner.ar_mb_values,
+                          runner.ar_mb_neglogpacs,
                           runner.ar_mb_valids,
                           runner.ar_mb_ent,)
 
     def train(self, lr, obs, goals, timesteps, masks, actions, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.train_model.E: increase_ent}
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.train_model.E: increase_ent}
         return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
 
 # x = tf.zeros((8,4,2))

@@ -46,6 +46,7 @@ class Runner(object):
         # Per episode information
         self.epinfos = []
         self.mb_cells = []
+        self.mb_advs = []
         self.mb_game_reward = []
         self.mb_exp_strat = []
         self.mb_traj_index = []
@@ -57,6 +58,8 @@ class Runner(object):
         self.mb_rewards = self.reg_shift_list()
         self.mb_reward_avg = self.reg_shift_list()
         self.mb_actions = self.reg_shift_list()
+        self.mb_values = self.reg_shift_list()
+        self.mb_neglogpacs = self.reg_shift_list()
 
         self.mb_valids = self.reg_shift_list()
         self.mb_random_resets = self.reg_shift_list()
@@ -78,7 +81,11 @@ class Runner(object):
         self.ar_mb_valids = None
         self.ar_mb_actions = None
         self.ar_mb_timesteps = None
+        self.ar_mb_values = None
+        self.ar_mb_neglogpacs = None
         self.ar_mb_dones = None
+        self.ar_mb_advs = None
+        self.ar_mb_rets = None
         self.ar_mb_cells = None
         self.ar_mb_game_reward = None
         self.ar_mb_ret_strat = None
@@ -175,7 +182,7 @@ class Runner(object):
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
+            actions, , neglogp0 = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
@@ -183,7 +190,25 @@ class Runner(object):
                 else:
                     self.timesteps[i] += 1
 
-            self.append_mb_data(actions, obs_and_goals, rewards, dones, infos, self.timesteps)
+            self.append_mb_data(actions, neglogpacs, obs_and_goals, rewards, dones, infos, self.timesteps)
+
+        self.mb_advs = [np.zeros_like(self.mb_values[0])] * (len(self.mb_rewards) + 1)
+        for t in reversed(range(len(self.mb_rewards))):
+            if t < self.num_steps_to_cut_left:
+                self.mb_valids[t] = np.zeros_like(self.mb_valids[t])
+            else:
+                if t == len(self.mb_values)-1:
+                    # V(s_t+n)
+                    next_value = self.model.value(self.obs_final,
+                                                  self.mb_goals[-1],
+                                                  self.mb_states[-1],
+                                                  self.mb_dones[-1])
+                else:
+                    next_value = self.mb_values[t+1]
+                use_next = np.logical_not(self.mb_dones[t+1])
+                adv_mask = np.logical_not(self.mb_random_resets[t+1])
+                delta = self.mb_rewards[t] + self.gamma * use_next * next_value - self.mb_values[t]
+                self.mb_advs[t] = adv_mask * (delta + self.gamma * self.lam * use_next * self.mb_advs[t + 1])
 
         # extract arrays
         end = self.nsteps + self.num_steps_to_cut_left
@@ -197,7 +222,7 @@ class Runner(object):
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
         return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
-    def append_mb_data(self, actions, obs_and_goals, rewards, dones, infos, timesteps):
+    def append_mb_data(self, actions, neglogpacs, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
         for i in range(len(actions)):
             if overwritten_action[i] >= 0:
@@ -233,6 +258,7 @@ class Runner(object):
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
         self.mb_dones.append(dones)
+        self.mb_neglogpacs.append(neglpgpacs)
 
         self.mb_valids.append([(not info.get('replay_reset.invalid_transition', False)) for info in infos])
         self.mb_random_resets.append(np.array([info.get('replay_reset.random_reset', False) for info in infos]))
@@ -261,12 +287,16 @@ class Runner(object):
         self.ar_mb_ent = sf01(np.stack(self.mb_increase_ent[:end], axis=0), 'ents')
         self.ar_mb_valids = sf01(np.asarray(self.mb_valids[:end], dtype=np.float32), 'valids')
         self.ar_mb_actions = sf01(np.asarray(self.mb_actions[:end]), 'actions')
+        self.ar_mb_neglogpacs = sf01(np.asarray(self.mb_neglogpacs[:end], dtype=np.float32), 'neg_log_prob')
+
         self.ar_mb_timesteps = np.asarray(self.timesteps)
         self.ar_mb_dones = sf01(np.asarray(self.mb_dones[:end], dtype=np.bool), 'dones')
-
+        self.ar_mb_advs = np.asarray(self.mb_advs[:end], dtype=np.float32)
         self.ar_mb_cells = sf01(np.asarray(self.mb_cells, dtype=np.object), 'cells')
         self.ar_mb_ret_strat = sf01(np.asarray(self.mb_exp_strat, dtype=np.int32), 'ret_strats')
-
+        self.ar_mb_values = np.asarray(self.mb_values[:end], dtype=np.float32)
+        self.ar_mb_rets = sf01(self.ar_mb_values + self.ar_mb_advs, 'rets')
+        self.ar_mb_values = sf01(self.ar_mb_values, 'vals')
         self.ar_mb_game_reward = sf01(np.asarray(self.mb_game_reward, dtype=np.float32), 'game_rew')
 
         trunc_trajectory_ids = self.mb_trajectory_ids[-len(self.mb_cells) - 1:len(self.mb_trajectory_ids) - 1]
