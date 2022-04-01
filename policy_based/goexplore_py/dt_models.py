@@ -258,7 +258,7 @@ class GPT(object):
                 logits *= 2.
             else:
                 logits /= tf.reshape(entropy, (nenv, nsteps, 1))
-            vf = tf.reshape(vf_before_squeeze, (nenv*nsteps))
+            vf = tf.squeeze(tf.reshape(vf_before_squeeze, (nenv*nsteps, 1)), axis=[1])
 
         self.pdtype = make_pdtype(ac_space)
         self.pd = self.pdtype.pdfromflat(tf.reshape(logits, (nenv*nsteps, nact)))
