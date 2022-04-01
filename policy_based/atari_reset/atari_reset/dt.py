@@ -199,9 +199,12 @@ class Runner(object):
             else:
                 if t == len(self.mb_values)-1:
                     # V(s_t+n)
-                    next_value = self.model.value(self.obs_final,
-                                                  self.mb_goals[-1],
-                                                  self.mb_dones[-1])
+                    next_value = self.model.value(self.sq_obs,
+                                                  self.sq_goals,
+                                                   self.sq_actions,
+                                                  self.sq_dones,
+                                                  self.timesteps,
+                                                  self.sq_ent)
                 else:
                     next_value = self.mb_values[t+1]
                 use_next = np.logical_not(self.mb_dones[t+1])
