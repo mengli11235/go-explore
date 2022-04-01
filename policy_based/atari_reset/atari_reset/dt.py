@@ -201,7 +201,6 @@ class Runner(object):
                     # V(s_t+n)
                     next_value = self.model.value(self.obs_final,
                                                   self.mb_goals[-1],
-                                                  self.mb_states[-1],
                                                   self.mb_dones[-1])
                 else:
                     next_value = self.mb_values[t+1]

@@ -287,7 +287,7 @@ class GPT(object):
                              fake_actions: local_fake_action})
 
         def value(local_ob, local_goal, local_mask):
-            return sess.run(vf, {nn_input: local_ob, mask: local_mask, goal: local_goal})
+            return sess.run(vf1, {nn_input: local_ob, mask: local_mask, goal: local_goal})
 
         self.X = nn_input
         self.goal = goal
@@ -413,6 +413,8 @@ class Model(object):
         self.train_op = opt.minimize(self.loss)
         self.step = self.act_model.step
         self.step_fake_action = self.act_model.step_fake_action
+        self.value = self.act_model.value
+
         self.sess.run(tf.compat.v1.global_variables_initializer())
         if load_path and hvd.rank() == 0:
             self.load(load_path)
