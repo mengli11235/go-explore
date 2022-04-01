@@ -182,7 +182,7 @@ class Runner(object):
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, , neglogp0 = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
+            actions, logits, neglogp0 = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
