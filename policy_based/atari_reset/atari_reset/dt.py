@@ -304,7 +304,11 @@ class Runner(object):
         self.ar_mb_rets = sf01(self.ar_mb_values + self.ar_mb_advs, 'rets')
         self.ar_mb_values = sf01(self.ar_mb_values, 'vals')
         self.ar_mb_game_reward = sf01(np.asarray(self.mb_game_reward, dtype=np.float32), 'game_rew')
-
+        if self.norm_adv:
+            adv_mean, adv_std, _ = mpi_moments(self.ar_mb_advs.ravel())
+            self.ar_mb_advs = (self.ar_mb_advs - adv_mean) / (adv_std + 1e-7)
+        self.ar_mb_advs = sf01(self.ar_mb_advs, 'advs')
+        
         trunc_trajectory_ids = self.mb_trajectory_ids[-len(self.mb_cells) - 1:len(self.mb_trajectory_ids) - 1]
         self.trunc_lst_mb_trajectory_ids = sf01(np.asarray(trunc_trajectory_ids, dtype=np.int), 'traj_ids')
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
