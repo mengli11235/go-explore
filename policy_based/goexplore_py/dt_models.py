@@ -307,8 +307,15 @@ class Model(object):
         self.A = None
         self.VALID = None
         self.R = None
+        self.OLDNEGLOGPAC = None
+        self.OLDVPRED = None
         self.LR = None
+        self.vpred = None
         self.entropy = None
+        self.vf_loss = None
+        self.pg_loss = None
+        self.approxkl = None
+        self.clipfrac = None
         self.dt_loss = None
         self.params = None
         self.l2_loss = None
@@ -319,6 +326,7 @@ class Model(object):
         self.loss_enabled = None
         self.step = None
         self.step_fake_action = None
+        self.value = None
         self.act_model = None
         self.train_model = None
         self.disable_hvd = None
@@ -348,6 +356,9 @@ class Model(object):
         # The old negative log probability of each action (i.e. -log(pi_old(a_t|s_t)) )
         self.OLDNEGLOGPAC = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='neglogprob')
 
+        # The old value prediction for each state in our rollout (i.e. V_old(s_t))
+        self.OLDVPRED = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valuepred')
+        
         # This is just the learning rate
         self.LR = tf.compat.v1.placeholder(tf.float32, [], name='lr')
 
@@ -461,7 +472,7 @@ class Model(object):
                           runner.ar_mb_ent,)
 
     def train(self, lr, obs, goals, timesteps, returns, advs, masks, actions, values, neglogpacs, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.OLDNEGLOGPAC: neglogpacs, self.train_model.E: increase_ent}
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.train_model.E: increase_ent}
         return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
 
 # x = tf.zeros((8,4,2))
