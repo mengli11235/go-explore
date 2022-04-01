@@ -183,9 +183,9 @@ class Runner(object):
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
             actions, values, neglogpacs = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
-            actions = tf.reshape(actions, (nenv, nsteps))[:,-1]
-            values = tf.reshape(values, (nenv, nsteps))[:,-1]
-            neglogpacs = tf.reshape(neglogpacs, (nenv, nsteps))[:,-1]
+            actions = tf.reshape(actions, (self.nenv, self.nsteps))[:,-1]
+            values = tf.reshape(values, (self.nenv, self.nsteps))[:,-1]
+            neglogpacs = tf.reshape(neglogpacs, (self.nenv, self.nsteps))[:,-1]
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
