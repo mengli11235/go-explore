@@ -182,7 +182,10 @@ class Runner(object):
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, logits, neglogp0 = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
+            actions, values, neglogpacs = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
+            actions = tf.reshape(actions, (nenv, nsteps))[:,-1]
+            values = tf.reshape(values, (nenv, nsteps))[:,-1]
+            neglogpacs = tf.reshape(neglogpacs, (nenv, nsteps))[:,-1]
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
@@ -190,7 +193,7 @@ class Runner(object):
                 else:
                     self.timesteps[i] += 1
 
-            self.append_mb_data(actions, neglogpacs, obs_and_goals, rewards, dones, infos, self.timesteps)
+            self.append_mb_data(actions, values, neglogpacs, obs_and_goals, rewards, dones, infos, self.timesteps)
 
         self.mb_advs = [np.zeros_like(self.mb_values[0])] * (len(self.mb_rewards) + 1)
         for t in reversed(range(len(self.mb_rewards))):
@@ -222,7 +225,7 @@ class Runner(object):
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
         return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
-    def append_mb_data(self, actions, neglogpacs, obs_and_goals, rewards, dones, infos, timesteps):
+    def append_mb_data(self, actions, values, neglogpacs, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
         for i in range(len(actions)):
             if overwritten_action[i] >= 0:
@@ -259,6 +262,7 @@ class Runner(object):
         self.mb_rewards.append(rewards)
         self.mb_dones.append(dones)
         self.mb_neglogpacs.append(neglpgpacs)
+        self.mb_values.append(values)
 
         self.mb_valids.append([(not info.get('replay_reset.invalid_transition', False)) for info in infos])
         self.mb_random_resets.append(np.array([info.get('replay_reset.random_reset', False) for info in infos]))

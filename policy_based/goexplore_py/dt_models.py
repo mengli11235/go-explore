@@ -258,10 +258,10 @@ class GPT(object):
                 logits *= 2.
             else:
                 logits /= tf.reshape(entropy, (nenv, nsteps, 1))
-            vf = tf.squeeze(vf_before_squeeze[:, -1, :], axis=[1])
+            vf = tf.reshape(vf_before_squeeze, (nenv*nsteps))
 
         self.pdtype = make_pdtype(ac_space)
-        self.pd = self.pdtype.pdfromflat(logits[:, -1, :])
+        self.pd = self.pdtype.pdfromflat(tf.reshape(logits, (nenv*nsteps, nact)))
 
         a0 = self.pd.sample()
         neglogp0 = self.pd.neglogp(a0)
@@ -269,12 +269,12 @@ class GPT(object):
         logger.info(f'a0.dtype: {a0.dtype}')
 
         def step(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent):
-            return sess.run([a0, logits, neglogp0],
+            return sess.run([a0, vf, neglogp0],
                             {nn_input: local_ob, mask: local_mask, timesteps: local_timesteps, entropy: local_increase_ent,
                              goal: local_goal, actions:local_actions})
 
         def step_fake_action(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent, local_fake_action):
-            return sess.run([a0, logits, neglogp0, neg_log_fake_a],
+            return sess.run([a0, vf, neglogp0, neg_log_fake_a],
                             {nn_input: local_ob,
                              mask: local_mask,
                              timesteps: local_timesteps,
@@ -308,10 +308,10 @@ class Model(object):
         self.VALID = None
         self.R = None
         self.LR = None
-        #self.entropy = None
+        self.entropy = None
         self.dt_loss = None
         self.params = None
-        #self.l2_loss = None
+        self.l2_loss = None
         self.train_op = None
         self.loss_requested_dict = None
         self.loss_requested = None
@@ -460,8 +460,8 @@ class Model(object):
                           runner.ar_mb_valids,
                           runner.ar_mb_ent,)
 
-    def train(self, lr, obs, goals, timesteps, masks, actions, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.train_model.E: increase_ent}
+    def train(self, lr, obs, goals, timesteps, returns, advs, masks, actions, values, neglogpacs, valids, increase_ent):
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.OLDNEGLOGPAC: neglogpacs, self.train_model.E: increase_ent}
         return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
 
 # x = tf.zeros((8,4,2))
