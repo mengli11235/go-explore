@@ -258,7 +258,7 @@ class Runner(object):
         self.mb_increase_ent.append(self.get_entropy(infos))
         self.mb_rewards.append(rewards)
         self.mb_dones.append(dones)
-        self.mb_neglogpacs.append(neglpgpacs)
+        self.mb_neglogpacs.append(neglogpacs)
         self.mb_values.append(values)
 
         self.mb_valids.append([(not info.get('replay_reset.invalid_transition', False)) for info in infos])
