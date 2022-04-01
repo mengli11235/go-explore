@@ -199,7 +199,7 @@ class Runner(object):
             else:
                 if t == len(self.mb_values)-1:
                     # V(s_t+n)
-                    next_value = self.model.value(self.sq_obs,
+                    next_value = self.value_model(self.sq_obs,
                                                   self.sq_goals,
                                                    self.sq_actions,
                                                   self.sq_dones,
@@ -223,6 +223,9 @@ class Runner(object):
 
     def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
         return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
+
+    def value_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
+        return self.model.value(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
     def append_mb_data(self, actions, values, neglogpacs, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
