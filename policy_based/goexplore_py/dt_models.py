@@ -259,22 +259,25 @@ class GPT(object):
             else:
                 logits /= tf.reshape(entropy, (nenv, nsteps, 1))
             vf = tf.squeeze(tf.reshape(vf_before_squeeze, (nenv*nsteps, 1)), axis=[1])
+            vf1 = tf.reshape(vf, (nenv, nsteps))[:,-1]
 
         self.pdtype = make_pdtype(ac_space)
         self.pd = self.pdtype.pdfromflat(tf.reshape(logits, (nenv*nsteps, nact)))
 
         a0 = self.pd.sample()
         neglogp0 = self.pd.neglogp(a0)
+        a01 = tf.reshape(a0, (nenv, nsteps))[:,-1]
+        neglogp01 = tf.reshape(neglogp0, (nenv, nsteps))[:,-1]
         logger.info(f'a0.shape: {a0.shape}')
         logger.info(f'a0.dtype: {a0.dtype}')
 
         def step(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent):
-            return sess.run([a0, vf, neglogp0],
+            return sess.run([a01, vf1, neglogp01],
                             {nn_input: local_ob, mask: local_mask, timesteps: local_timesteps, entropy: local_increase_ent,
                              goal: local_goal, actions:local_actions})
 
         def step_fake_action(local_ob, local_goal, local_actions, local_mask, local_timesteps, local_increase_ent, local_fake_action):
-            return sess.run([a0, vf, neglogp0, neg_log_fake_a],
+            return sess.run([a01, vf1, neglogp01, neg_log_fake_a],
                             {nn_input: local_ob,
                              mask: local_mask,
                              timesteps: local_timesteps,
@@ -358,7 +361,7 @@ class Model(object):
 
         # The old value prediction for each state in our rollout (i.e. V_old(s_t))
         self.OLDVPRED = tf.compat.v1.placeholder(tf.float32, [nenv * nsteps], name='valuepred')
-        
+
         # This is just the learning rate
         self.LR = tf.compat.v1.placeholder(tf.float32, [], name='lr')
 
