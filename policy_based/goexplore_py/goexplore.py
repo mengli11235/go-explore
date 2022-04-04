@@ -227,7 +227,7 @@ class Explore:
         trajectory_manager = self.archive.cell_trajectory_manager
         trajectory_manager.traj_prob_dict = cell_selector.get_traj_probabilities_dict(self.archive.archive)
 
-        if self.sil == 'sil' or self.sil == 'replay':
+        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'dt':
             traj_candidates = []
 
             # Select a trajectory to imitate based on the current cell-selection procedure

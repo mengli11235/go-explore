@@ -335,13 +335,33 @@ class Model(object):
         self.train_model = None
         self.disable_hvd = None
         self.logits = None
-        
+
+        self.sil_loss = None
+        self.SIL_A = None
+        self.SIL_VALID = None
+        self.SIL_R = None
+        self.sil_pg_loss = None
+        self.sil_vf_loss = None
+        self.sil_entropy = None
+        self.sil_valid_min = None
+        self.sil_valid_max = None
+        self.sil_valid_mean = None
+
+        self.neglop_sil_min = None
+        self.neglop_sil_max = None
+        self.neglop_sil_mean = None
+
+        # Debug
+        self.mean_val_pred = None
+        self.mean_sil_r = None
+        self.train_it = 0
+
     def init(self, model, ob_space, ac_space, nenv, nsteps, adam_epsilon=1e-6, load_path=None, test_mode=False, goal_space=None, disable_hvd=False):
         self.sess = tf.compat.v1.get_default_session()
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, disable_hvd)
-        #self.loss = self.dt_loss
-        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss #+  self.dt_loss * 1e-4
+        self.init_sil_loss(nenv, nsteps, 0.01, 0)
+        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss + 0.1 * self.sil_loss #+  self.dt_loss * 1e-4
 
         self.finalize(load_path, adam_epsilon)
 
@@ -400,6 +420,29 @@ class Model(object):
         self.l2_loss = .5 * sum([tf.math.reduce_sum(tf.math.square(p)) for p in self.params])
         self.disable_hvd = disable_hvd
 
+    def init_sil_loss(self, nenv, nsteps, sil_vf_coef, sil_ent_coef):
+        self.SIL_A = self.train_model.pdtype.sample_placeholder([nenv*nsteps], name='sil_action')
+        self.SIL_VALID = tf.compat.v1.placeholder(tf.float32, [nenv*nsteps], name='sil_valid')
+        self.SIL_R = tf.compat.v1.placeholder(tf.float32, [nenv*nsteps], name='sil_return')
+
+        neglogp_sil_ac = self.train_model.pd.neglogp(self.SIL_A)
+
+        self.sil_pg_loss = tf.math.reduce_mean(neglogp_sil_ac * tf.nn.relu(self.SIL_R - self.OLDVPRED) * self.SIL_VALID)
+        self.sil_vf_loss = .5 * tf.math.reduce_mean(tf.math.square(tf.nn.relu(self.SIL_R - self.vpred)) * self.SIL_VALID)
+        self.sil_entropy = tf.math.reduce_mean(self.SIL_VALID * self.train_model.pd.entropy())
+        self.sil_loss = self.sil_pg_loss + sil_vf_coef * self.sil_vf_loss + sil_ent_coef * self.sil_entropy
+
+        self.sil_valid_min = tf.math.reduce_min(self.SIL_VALID)
+        self.sil_valid_max = tf.math.reduce_max(self.SIL_VALID)
+        self.sil_valid_mean = tf.math.reduce_mean(self.SIL_VALID)
+
+        self.neglop_sil_min = tf.math.reduce_min(neglogp_sil_ac)
+        self.neglop_sil_max = tf.math.reduce_max(neglogp_sil_ac)
+        self.neglop_sil_mean = tf.math.reduce_mean(neglogp_sil_ac)
+
+        self.mean_val_pred = tf.math.reduce_mean(self.OLDVPRED)
+        self.mean_sil_r = tf.math.reduce_mean(self.SIL_R)
+
     def init_models(self, model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space):
         # At test time, we only need the most recent action in order to take a step.
         self.act_model = model(self.sess, ob_space, ac_space, nenv, nsteps, test_mode=test_mode, reuse=False, goal_space=goal_space)
@@ -429,6 +472,18 @@ class Model(object):
                                     self.entropy: 'policy_entropy',
                                     self.approxkl: 'approxkl',
                                     self.clipfrac: 'clipfrac',
+                                    self.sil_pg_loss: 'sil_pg_loss',
+                                    self.sil_vf_loss: 'sil_vf_loss',
+                                    self.sil_loss: 'sil_loss',
+                                    self.sil_entropy: 'sil_entropy',
+                                    self.sil_valid_min: 'sil_valid_min',
+                                    self.sil_valid_max: 'sil_valid_max',
+                                    self.sil_valid_mean: 'sil_valid_mean',
+                                    self.neglop_sil_min: 'neglop_sil_min',
+                                    self.neglop_sil_max: 'neglop_sil_max',
+                                    self.neglop_sil_mean: 'neglop_sil_mean',
+                                    self.mean_val_pred: 'mean_val_pred',
+                                    self.mean_sil_r: 'mean_sil_r',
                                     self.train_op: ''}
         self.init_requested_loss()
 
@@ -475,12 +530,17 @@ class Model(object):
                           runner.ar_mb_values,
                           runner.ar_mb_neglogpacs,
                           runner.ar_mb_valids,
-                          runner.ar_mb_ent,)
+                          runner.ar_mb_ent,
+                          runner.ar_mb_sil_actions,
+                          runner.ar_mb_sil_rew,
+                          runner.ar_mb_sil_valid,)
 
-    def train(self, lr, obs, goals, timesteps, returns, advs, masks, actions, values, neglogpacs, valids, increase_ent):
-        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.VALID: valids, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.train_model.E: increase_ent}
-        return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
+    def train(self, lr, obs, goals, timesteps, returns, advs, masks, actions, values, neglogpacs, valids, increase_ent, sil_actions=None, sil_rew=None, sil_valid=None):
+        td_map = {self.LR: lr, self.train_model.X: obs,  self.train_model.goal: goals, self.train_model.T: timesteps, self.A: actions, self.train_model.A: actions, self.ADV: advs, self.VALID: valids, self.R: returns, self.OLDNEGLOGPAC: neglogpacs, self.OLDVPRED: values, self.train_model.E: increase_ent, self.SIL_A: sil_actions, self.SIL_R: sil_rew, self.SIL_VALID: sil_valid}
 
+        #return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
+        return self.filter_requested_losses(self.sess.run(self.loss_requested, feed_dict=td_map))
+        
 # x = tf.zeros((8,4,2))
 # y = tf.ones((8,4,2))
 # z = tf.reshape(tf.stack([x, y], axis=1), (8,8,2))

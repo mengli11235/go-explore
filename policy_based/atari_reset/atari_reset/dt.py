@@ -76,6 +76,14 @@ class Runner(object):
 
         self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
         
+        self.mb_sil_actions = self.reg_shift_list()
+        self.mb_sil_rew = self.reg_shift_list()
+        self.mb_sil_valid = self.reg_shift_list()
+        self.ar_mb_sil_valid = None
+        self.ar_mb_sil_actions = None
+        self.ar_mb_sil_rew = None
+        self.trunc_lst_mb_sil_valid = None
+    
         self.ar_mb_goals = None
         self.ar_mb_ent = None
         self.ar_mb_valids = None
@@ -287,6 +295,20 @@ class Runner(object):
                         continue
                 self.epinfos.append(maybeepinfo)
 
+        def get_sil_valid(info):
+            is_valid = float(info.get('sil_action') is not None)
+            return is_valid
+
+        self.mb_sil_valid.append([get_sil_valid(info) for info in infos])
+        sil_actions = np.zeros_like(actions)
+        for cur_info_id, info in enumerate(infos):
+            cur_action = info.get('sil_action')
+            if cur_action is not None:
+                sil_actions[cur_info_id] = cur_action
+
+        self.mb_sil_actions.append(sil_actions)
+        self.mb_sil_rew.append([info.get('sil_value', 0) for info in infos])
+
     def gather_return_info(self, end):
         from baselines.common.mpi_moments import mpi_moments
         self.ar_mb_goals = sf01(np.asarray(self.mb_goals[:end], dtype=self.model.train_model.goal.dtype.name), 'goals')
@@ -308,7 +330,7 @@ class Runner(object):
             adv_mean, adv_std, _ = mpi_moments(self.ar_mb_advs.ravel())
             self.ar_mb_advs = (self.ar_mb_advs - adv_mean) / (adv_std + 1e-7)
         self.ar_mb_advs = sf01(self.ar_mb_advs, 'advs')
-        
+
         trunc_trajectory_ids = self.mb_trajectory_ids[-len(self.mb_cells) - 1:len(self.mb_trajectory_ids) - 1]
         self.trunc_lst_mb_trajectory_ids = sf01(np.asarray(trunc_trajectory_ids, dtype=np.int), 'traj_ids')
         trunc_dones = self.mb_dones[-len(self.mb_cells):len(self.mb_dones)]
@@ -343,6 +365,11 @@ class Runner(object):
         self.ar_mb_traj_index = sf01(np.asarray(self.mb_traj_index, dtype=np.int32), 'ar_mb_traj_index')
         self.ar_mb_traj_len = sf01(np.asarray(self.mb_traj_len, dtype=np.int32), 'ar_mb_traj_len')
 
+        self.ar_mb_sil_valid = sf01(np.asarray(self.mb_sil_valid[:end], dtype=np.float32), 'sil_valids')
+        self.ar_mb_sil_actions = sf01(np.asarray(self.mb_sil_actions[:end]), 'sil_actions')
+        self.ar_mb_sil_rew = sf01(np.asarray(self.mb_sil_rew[:end], dtype=np.float32), 'sil_rewards')
+        self.trunc_lst_mb_sil_valid = sf01(np.asarray(self.mb_sil_valid[-len(self.mb_cells):len(self.mb_sil_valid)],
+                                                          dtype=np.float32), 'trunc_sil_valids')
 
 def sf01(arr, _name=''):
     """
