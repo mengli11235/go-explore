@@ -341,7 +341,7 @@ class Model(object):
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, disable_hvd)
         #self.loss = self.dt_loss
-        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss +  self.dt_loss * 1e-4
+        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss #+  self.dt_loss * 1e-4
 
         self.finalize(load_path, adam_epsilon)
 
