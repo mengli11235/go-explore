@@ -170,7 +170,7 @@ class Explore:
         self.archive.cell_trajectory_manager.write_low_prob_traj_to_disk(traj_id)
 
     def sync_before_checkpoint(self):
-        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'dt':
+        if self.sil == 'sil' or self.sil == 'replay' or self.sil == 'dt' or self.sil == 'nosil':
             # Let everyone in the world know who has which full trajectory
             owned_by_world = self.get_traj_owners(self.archive.cell_trajectory_manager.cell_trajectories)
 
