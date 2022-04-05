@@ -242,9 +242,9 @@ class GPT(object):
             # (batch_size, 1, n_embd) + (1, traj_length, n_embd)
 
             x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
-            for i in range(n_layer):
-                x = blocks(x, n_head, str(i))
-            x = ln_f(x)
+            # for i in range(n_layer):
+            #     x = blocks(x, n_head, str(i))
+            # x = ln_f(x)
             logits = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'head', nout=nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
             vf_before_squeeze = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'v', nout=1, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], 1))
             if actions is not None:
@@ -540,7 +540,7 @@ class Model(object):
 
         #return self.sess.run(self.loss_requested, feed_dict=td_map)[:-1]
         return self.filter_requested_losses(self.sess.run(self.loss_requested, feed_dict=td_map))
-        
+
 # x = tf.zeros((8,4,2))
 # y = tf.ones((8,4,2))
 # z = tf.reshape(tf.stack([x, y], axis=1), (8,8,2))
