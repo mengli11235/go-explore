@@ -230,7 +230,7 @@ class Runner(object):
     def get_entropy(self, infos):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
-    def step_model(self, obs, mb_goals, mb_states, mb_dones, timesteps, mb_increase_ent):
+    def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
         return self.model.step(obs.reshape(self.model.act_model.X.shape), mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
     
     # def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
