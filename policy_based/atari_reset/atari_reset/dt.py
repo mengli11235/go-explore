@@ -213,7 +213,7 @@ class Runner(object):
                     #                               self.sq_dones,
                     #                               self.timesteps,
                     #                               self.sq_ent)
-                    next_value = self.model.value(self.obs_final, self.mb_goals[-1], self.mb_actions[-1], self.mb_dones[-1], self.timesteps, self.mb_increase_ent[-1])
+                    next_value = self.model.value(self.obs_final.reshape(self.model.act_model.X.shape), self.mb_goals[-1], self.mb_actions[-1], self.mb_dones[-1], self.timesteps, self.mb_increase_ent[-1])
                 else:
                     next_value = self.mb_values[t+1]
                 use_next = np.logical_not(self.mb_dones[t+1])
