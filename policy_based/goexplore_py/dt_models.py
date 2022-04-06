@@ -222,7 +222,7 @@ class GPT(object):
             goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed1', nout=n_embed, init_scale=0.02))
             goal_embeddings = tf.reshape(goal_embeddings, (nenv, nsteps, n_embed))
 
-            if actions is not None: 
+            if False: #actions is not None: 
                 action_embeddings = tf.math.tanh(action_embed(tf.reshape(actions, (nenv,nsteps))))
                 action_embeddings = tf.reshape(action_embeddings, (nenv, nsteps, n_embed))
                 # (batch, block_size, n_embd)
@@ -233,7 +233,7 @@ class GPT(object):
                 # token_embeddings[:,2::3,:] = action_embeddings[:,-nsteps + int(test_mode):,:]
             else: # only happens at very first timestep of evaluation
                 # goal_embeddings =  tf.math.tanh(fc(goal,'goal_embed2', nout=n_embd, init_scale=0.02))
-                token_embeddings = tf.reshape(tf.stack([goal_embeddings, input_embeddings], axis=-1), (nenv, nsteps*2, n_embed))
+                token_embeddings = tf.reshape(tf.stack([goal_embeddings, input_embeddings], axis=1), (nenv, nsteps*2, n_embed))
                 # token_embeddings[:,::2,:] = goal_embeddings # really just [:,0,:]
                 # token_embeddings[:,1::2,:] = input_embeddings # really just [:,1,:]
             all_global_pos_emb = tf.repeat(global_pos_emb, nenv, axis=0) # batch_size, traj_length, n_embd
@@ -241,18 +241,19 @@ class GPT(object):
             position_embeddings = torch_gather(all_global_pos_emb, tf.repeat(tf.reshape(timesteps, (nenv, 1, 1)), n_embed, axis=-1), gather_axis=1) + pos_emb[:, :token_embeddings.shape.as_list()[1], :]
             # (batch_size, 1, n_embd) + (1, traj_length, n_embd)
 
-            x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
-            # for i in range(n_layer):
-            #     x = blocks(x, n_head, str(i))
-            # x = ln_f(x)
+            # x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
+            x = tf.nn.dropout(token_embeddings, 0.1)
+            for i in range(n_layer):
+                x = blocks(x, n_head, str(i))
+            x = ln_f(x)
             logits = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'head', nout=nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
             vf_before_squeeze = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'v', nout=1, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], 1))
-            if actions is not None:
+            if False: #actions is not None:
                 logits = logits[:, 1::3, :] # only keep predictions from input_embeddings
                 vf_before_squeeze = vf_before_squeeze[:, 1::3, :]
             else:
-                logits = logits[:, 1:, :]
-                vf_before_squeeze = vf_before_squeeze[:, 1:, :]
+                logits = logits[:, 1::2, :]
+                vf_before_squeeze = vf_before_squeeze[:, 1::2, :]
 
             if test_mode:
                 logits *= 2.
