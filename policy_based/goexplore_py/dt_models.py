@@ -243,9 +243,9 @@ class GPT(object):
 
             # x = tf.nn.dropout(token_embeddings + position_embeddings, 0.1)
             x = tf.nn.dropout(token_embeddings, 0.1)
-            # for i in range(n_layer):
-            #     x = blocks(x, n_head, str(i))
-            # x = ln_f(x)
+            for i in range(n_layer):
+                x = blocks(x, n_head, str(i))
+            x = ln_f(x)
             logits = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'head', nout=nact, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], nact))
             vf_before_squeeze = tf.reshape(fc(tf.reshape(x, (nenv*token_embeddings.shape.as_list()[1], n_embed)), 'v', nout=1, init_scale=0.02), (nenv, token_embeddings.shape.as_list()[1], 1))
             if False: #actions is not None:
@@ -362,7 +362,8 @@ class Model(object):
         self.init_models(model, ob_space, ac_space, nenv, nsteps, test_mode, goal_space)
         self.init_loss(nenv, nsteps, disable_hvd)
         self.init_sil_loss(nenv, nsteps, 0.01, 0)
-        self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss + 0.1 * self.sil_loss# + self.dt_loss * 0.5
+        #self.loss = self.pg_loss - self.entropy * 1e-4 + self.vf_loss * 0.5 + 1e-7 * self.l2_loss + 0.1 * self.sil_loss# + self.dt_loss * 0.5
+        self.loss = self.dt_loss
 
         self.finalize(load_path, adam_epsilon)
 
