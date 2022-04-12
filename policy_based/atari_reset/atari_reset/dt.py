@@ -66,15 +66,15 @@ class Runner(object):
         self.mb_dones = self.reg_shift_list()
         self.mb_trajectory_ids = self.reg_shift_list()
 
-        # self.sq_obs =  np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 80, 105, 12], dtype=self.model.train_model.X.dtype.name)
+        self.sq_obs =  np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, 80, 105, 12], dtype=self.model.train_model.X.dtype.name)
 
-        # self.sq_dones = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
+        self.sq_dones = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
 
-        # self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, self.model.train_model.goal.shape.as_list()[-1]], dtype=self.model.train_model.goal.dtype.name)
+        self.sq_goals = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left, self.model.train_model.goal.shape.as_list()[-1]], dtype=self.model.train_model.goal.dtype.name)
 
-        # self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.A.dtype.name)
+        self.sq_actions = np.zeros(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.A.dtype.name)
 
-        # self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
+        self.sq_ent = np.ones(shape=[self.nenv, self.nsteps + self.num_steps_to_cut_left], dtype=self.model.train_model.E.dtype.name)
         
         self.mb_sil_actions = self.reg_shift_list()
         self.mb_sil_rew = self.reg_shift_list()
@@ -126,8 +126,8 @@ class Runner(object):
         logger.info(f'Assigning the observation to a slice of our observation array: {self.obs_final.shape}')
         self.ar_mb_obs_2[:, 0, ...] = self.obs_final
 
-        #self.sq_obs[:, -1, ...] = self.obs_final
-        #self.sq_goals[:, -1, ...] = np.cast[self.model.train_model.goal.dtype.name](goals)
+        self.sq_obs[:, -1, ...] = self.obs_final
+        self.sq_goals[:, -1, ...] = np.cast[self.model.train_model.goal.dtype.name](goals)
         
         logger.info('Casting the goal...')
         self.mb_goals.append(np.cast[self.model.train_model.goal.dtype.name](goals))
@@ -190,7 +190,8 @@ class Runner(object):
 
         while len(self.mb_rewards) < self.nsteps+self.num_steps_to_cut_left+self.num_steps_to_cut_right:
             self.steps_taken += 1
-            actions, values, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, self.timesteps, self.mb_increase_ent)
+            #actions, values, neglogpacs = self.step_model(self.obs_final, self.mb_goals, self.mb_actions, self.mb_dones, self.timesteps, self.mb_increase_ent)
+            actions, values, neglogpacs = self.step_model(self.sq_obs, self.sq_goals, self.sq_actions, self.sq_dones, self.timesteps, self.sq_ent)
             obs_and_goals, rewards, dones, infos = self.env.step(actions)
             for i, dones_i in enumerate(dones):
                 if dones_i:
@@ -207,13 +208,13 @@ class Runner(object):
             else:
                 if t == len(self.mb_values)-1:
                     # V(s_t+n)
-                    # next_value = self.value_model(self.sq_obs,
-                    #                               self.sq_goals,
-                    #                                self.sq_actions,
-                    #                               self.sq_dones,
-                    #                               self.timesteps,
-                    #                               self.sq_ent)
-                    next_value = self.model.value(self.obs_final.reshape(self.model.act_model.X.shape), self.mb_goals[-1], self.mb_actions[-1], self.mb_dones[-1], self.timesteps, self.mb_increase_ent[-1])
+                    next_value = self.value_model(self.sq_obs,
+                                                  self.sq_goals,
+                                                   self.sq_actions,
+                                                  self.sq_dones,
+                                                  self.timesteps,
+                                                  self.sq_ent)
+                    #next_value = self.model.value(self.obs_final.reshape(self.model.act_model.X.shape), self.mb_goals[-1], self.mb_actions[-1], self.mb_dones[-1], self.timesteps, self.mb_increase_ent[-1])
                 else:
                     next_value = self.mb_values[t+1]
                 use_next = np.logical_not(self.mb_dones[t+1])
@@ -230,14 +231,14 @@ class Runner(object):
     def get_entropy(self, infos):
         return np.asarray([info.get('increase_entropy', 1.0) for info in infos], dtype=np.float32)
 
-    def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-        return self.model.step(obs.reshape(self.model.act_model.X.shape), mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
+    #def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
+    #    return self.model.step(obs.reshape(self.model.act_model.X.shape), mb_goals[-1], mb_actions[-1], mb_dones[-1], timesteps, mb_increase_ent[-1])
     
-    # def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-    #     return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
+    def step_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
+        return self.model.step(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
-    # def value_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
-    #     return self.model.value(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
+    def value_model(self, obs, mb_goals, mb_actions, mb_dones, timesteps, mb_increase_ent):
+        return self.model.value(obs.reshape(self.model.train_model.X.shape), mb_goals.reshape(self.model.train_model.goal.shape), mb_actions.reshape(self.model.train_model.A.shape), mb_dones.reshape(self.model.train_model.M.shape), timesteps, mb_increase_ent.reshape(self.model.train_model.E.shape))
 
     def append_mb_data(self, actions, values, neglogpacs, obs_and_goals, rewards, dones, infos, timesteps):
         overwritten_action = [info.get('overwritten_action', -1) for info in infos]
@@ -248,20 +249,20 @@ class Runner(object):
         self.mb_actions.append(actions)
         obs, goals = obs_and_goals
 
-        # self.sq_obs[:, :-1, ...] = self.sq_obs[:, 1:, ...] 
-        # self.sq_obs[:, -1, ...] = np.cast[self.model.train_model.X.dtype.name](obs)
+        self.sq_obs[:, :-1, ...] = self.sq_obs[:, 1:, ...] 
+        self.sq_obs[:, -1, ...] = np.cast[self.model.train_model.X.dtype.name](obs)
 
-        # self.sq_goals[:, :-1, ...] = self.sq_goals[:, 1:, ...] 
-        # self.sq_goals[:, -1, ...] = np.cast[self.model.train_model.goal.dtype.name](goals)
+        self.sq_goals[:, :-1, ...] = self.sq_goals[:, 1:, ...] 
+        self.sq_goals[:, -1, ...] = np.cast[self.model.train_model.goal.dtype.name](goals)
 
-        # self.sq_dones[:, :-1, ...] = self.sq_dones[:, 1:, ...] 
-        # self.sq_dones[:, -1, ...] = np.cast[self.model.train_model.M.dtype.name](dones)
+        self.sq_dones[:, :-1, ...] = self.sq_dones[:, 1:, ...] 
+        self.sq_dones[:, -1, ...] = np.cast[self.model.train_model.M.dtype.name](dones)
 
-        # self.sq_actions[:, :-1, ...] = self.sq_actions[:, 1:, ...] 
-        # self.sq_actions[:, -1, ...] = np.cast[self.model.train_model.A.dtype.name](actions)
+        self.sq_actions[:, :-1, ...] = self.sq_actions[:, 1:, ...] 
+        self.sq_actions[:, -1, ...] = np.cast[self.model.train_model.A.dtype.name](actions)
 
-        # self.sq_ent[:, :-1, ...] = self.sq_ent[:, 1:, ...] 
-        # self.sq_ent[:, -1, ...] = np.cast[self.model.train_model.E.dtype.name](self.get_entropy(infos))
+        self.sq_ent[:, :-1, ...] = self.sq_ent[:, 1:, ...] 
+        self.sq_ent[:, -1, ...] = np.cast[self.model.train_model.E.dtype.name](self.get_entropy(infos))
 
         if self.first_rollout:
             write_index = self.steps_taken
